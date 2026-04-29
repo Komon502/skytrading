@@ -88,17 +88,18 @@ export default function TradePage() {
     const qty = parseFloat(quantity)
     if (!qty || qty <= 0) { setOrderMsg({ type: 'error', text: 'ใส่จำนวนให้ถูกต้อง' }); return }
 
-    const total = qty * price
+    const totalUSD = qty * price
+    const totalTHB = totalUSD * 36  // Convert to THB for balance comparison
     const balance = mode === 'demo' ? wallet.demo_balance : wallet.real_balance
 
-    if (orderType === 'buy' && total > balance) {
-      setOrderMsg({ type: 'error', text: 'ยอดเงินไม่เพียงพอ' })
+    if (orderType === 'buy' && totalTHB > balance) {
+      setOrderMsg({ type: 'error', text: `ยอดเงินไม่เพียงพอ (ต้องการ ฿${totalTHB.toLocaleString('th-TH', {maximumFractionDigits: 2})}, มี ฿${balance.toLocaleString('th-TH', {maximumFractionDigits: 2})})` })
       return
     }
 
     setOrderLoading(true); setOrderMsg(null)
 
-    // Insert trade
+    // Insert trade (store both USD and THB values)
     const { error } = await supabase.from('trades').insert({
       user_id: user.id,
       mode,
@@ -106,16 +107,16 @@ export default function TradePage() {
       type: orderType,
       quantity: qty,
       price,
-      total,
+      total: totalUSD,
       status: 'open',
     })
 
     if (error) {
       setOrderMsg({ type: 'error', text: 'เกิดข้อผิดพลาด' })
     } else {
-      // Update wallet balance
+      // Update wallet balance (in THB)
       const balKey = mode === 'demo' ? 'demo_balance' : 'real_balance'
-      const newBal = orderType === 'buy' ? balance - total : balance + total
+      const newBal = orderType === 'buy' ? balance - totalTHB : balance + totalTHB
       await supabase.from('wallets').update({ [balKey]: newBal }).eq('user_id', user.id)
       await loadWallet(user.id)
       await loadPositions(user.id)
