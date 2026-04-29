@@ -97,6 +97,17 @@ export default function TradePage() {
       return
     }
 
+    // Check if selling more than owned
+    if (orderType === 'sell') {
+      const ownedQty = positions
+        .filter(p => p.mode === mode && p.symbol === selectedSymbol && p.type === 'buy')
+        .reduce((sum, p) => sum + parseFloat(p.quantity), 0)
+      if (qty > ownedQty) {
+        setOrderMsg({ type: 'error', text: `ขายเกินจำนวนที่มี (มี ${ownedQty} ${selectedSymbol}, จะขาย ${qty})` })
+        return
+      }
+    }
+
     setOrderLoading(true); setOrderMsg(null)
 
     // Insert trade (store both USD and THB values)
