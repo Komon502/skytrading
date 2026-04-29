@@ -157,8 +157,9 @@ export default function TradePage() {
         </div>
       )}
 
-      <div className="flex h-[calc(100vh-112px)]">
-        {/* Left sidebar: asset list */}
+      {/* Main trading layout */}
+      <div className="flex flex-col lg:flex-row h-[calc(100vh-64px)]">
+        {/* Left: asset list - collapsible on mobile */}
         <div className="w-64 border-r flex flex-col shrink-0 hidden md:flex"
           style={{ borderColor: 'rgba(59,127,212,0.12)', background: 'rgba(10,22,40,0.4)' }}>
           {/* Asset type toggle */}
@@ -188,19 +189,17 @@ export default function TradePage() {
           </div>
           {/* Asset list */}
           <div className="flex-1 overflow-y-auto">
-            {filteredAssets.slice(0, 40).map((a: any) => (
-              <button key={a.symbol}
-                onClick={() => {
-                  setSelectedSymbol(a.symbol)
-                  setIsCrypto(assetType === 'crypto')
-                  setOrderMsg(null)
-                }}
-                className={`ticker-row w-full px-3 py-2.5 text-left flex items-center justify-between transition-colors ${
-                  selectedSymbol === a.symbol ? 'bg-blue-600/10 border-l-2 border-blue-500' : ''
+            {(assetType === 'stocks' ? US_STOCKS : CRYPTOS).filter(a =>
+              a.symbol.toLowerCase().includes(search.toLowerCase()) ||
+              a.name.toLowerCase().includes(search.toLowerCase())
+            ).map(a => (
+              <button key={a.symbol} onClick={() => { setSelectedSymbol(a.symbol); setIsCrypto(assetType === 'crypto') }}
+                className={`w-full text-left p-3 border-b transition-all hover:bg-white/5 flex items-center justify-between ${
+                  selectedSymbol === a.symbol ? 'bg-white/5 border-blue-400/30' : 'border-transparent'
                 }`}>
                 <div>
                   <div className="text-xs font-semibold text-white">{a.symbol}</div>
-                  <div className="text-xs text-gray-500 truncate" style={{ maxWidth: 100 }}>{a.name}</div>
+                  <div className="text-xs text-gray-500 truncate max-w-[100px]">{a.name}</div>
                 </div>
                 {assetType === 'stocks' && (a as any).sector && (
                   <span className="text-xs text-gray-600">{(a as any).sector?.slice(0,4)}</span>
@@ -212,6 +211,34 @@ export default function TradePage() {
 
         {/* Center: chart + order form */}
         <div className="flex-1 flex flex-col min-w-0">
+          {/* Mobile asset selector */}
+          <div className="md:hidden px-3 py-2 border-b" style={{ borderColor: 'rgba(59,127,212,0.12)', background: 'rgba(10,22,40,0.5)' }}>
+            <div className="flex gap-2 mb-2">
+              <button onClick={() => setAssetType('stocks')}
+                className={`flex-1 py-1.5 rounded text-xs font-semibold ${assetType === 'stocks' ? 'bg-blue-600 text-white' : 'text-gray-500 bg-gray-800/50'}`}>
+                หุ้น
+              </button>
+              <button onClick={() => setAssetType('crypto')}
+                className={`flex-1 py-1.5 rounded text-xs font-semibold ${assetType === 'crypto' ? 'bg-blue-600 text-white' : 'text-gray-500 bg-gray-800/50'}`}>
+                Crypto
+              </button>
+            </div>
+            <select 
+              className="input-sky text-sm"
+              value={selectedSymbol}
+              onChange={(e) => {
+                const symbol = e.target.value;
+                const isCryptoSymbol = CRYPTOS.some(c => c.symbol === symbol);
+                setSelectedSymbol(symbol);
+                setIsCrypto(isCryptoSymbol);
+              }}
+            >
+              {(assetType === 'stocks' ? US_STOCKS : CRYPTOS).map(a => (
+                <option key={a.symbol} value={a.symbol}>{a.symbol} - {a.name}</option>
+              ))}
+            </select>
+          </div>
+
           {/* Chart header */}
           <div className="px-4 py-3 border-b flex items-center gap-4"
             style={{ borderColor: 'rgba(59,127,212,0.12)' }}>
@@ -271,8 +298,8 @@ export default function TradePage() {
                 </button>
               </div>
 
-              {/* Order input */}
-              <div className="flex gap-2 items-end">
+              {/* Order input - responsive grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div className="flex-1">
                   <label className="text-xs text-gray-500 mb-1 block">จำนวน ({selectedSymbol})</label>
                   <input
@@ -320,7 +347,7 @@ export default function TradePage() {
           </div>
         </div>
 
-        {/* Right: open positions */}
+        {/* Desktop positions sidebar */}
         <div className="w-72 border-l flex-col hidden lg:flex"
           style={{ borderColor: 'rgba(59,127,212,0.12)', background: 'rgba(10,22,40,0.3)' }}>
           <div className="p-3 border-b text-xs font-semibold text-gray-400"
@@ -346,6 +373,34 @@ export default function TradePage() {
                   <div className="flex justify-between text-gray-400 mt-1">
                     <span>Total</span>
                     <span className="text-white">${formatPrice(pos.total)}</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Mobile positions panel */}
+        <div className="lg:hidden border-t" style={{ borderColor: 'rgba(59,127,212,0.12)', background: 'rgba(10,22,40,0.5)' }}>
+          <div className="p-2 border-b text-xs font-semibold text-gray-400 flex justify-between"
+            style={{ borderColor: 'rgba(59,127,212,0.12)' }}>
+            <span>OPEN POSITIONS ({mode.toUpperCase()})</span>
+            <span className="text-gray-500">{positions.filter(p => p.mode === mode).length} รายการ</span>
+          </div>
+          <div className="max-h-32 overflow-y-auto p-2">
+            {positions.filter(p => p.mode === mode).length === 0 ? (
+              <div className="text-center text-xs text-gray-600 py-3">ยังไม่มีออเดอร์ที่เปิดอยู่</div>
+            ) : (
+              positions.filter(p => p.mode === mode).map(pos => (
+                <div key={pos.id} className="glass p-2 mb-1 text-xs flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white">{pos.symbol}</span>
+                    <span className={pos.type === 'buy' ? 'text-green-400' : 'text-red-400'}>
+                      {pos.type.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="text-gray-400">
+                    {pos.quantity} @ ${formatPrice(pos.price)}
                   </div>
                 </div>
               ))

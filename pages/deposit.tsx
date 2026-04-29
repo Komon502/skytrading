@@ -138,14 +138,14 @@ export default function DepositPage() {
         <p className="text-sm text-gray-500 mb-8">ฝากเงินผ่านการโอนพร้อมเพย์ แล้วแนบสลิปเพื่อยืนยัน</p>
 
         {/* Bank info */}
-        <div className="glass p-5 mb-6">
+        <div className="glass p-4 sm:p-5 mb-6">
           <p className="text-xs text-gray-500 mb-3 font-semibold uppercase tracking-wide">บัญชีปลายทาง</p>
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-lg"
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-lg shrink-0"
               style={{ background: 'rgba(59,127,212,0.1)' }}>🏦</div>
-            <div>
+            <div className="min-w-0">
               <p className="font-semibold text-white">ธนาคารกรุงไทย</p>
-              <p className="text-blue-300 font-mono text-lg font-bold">XXX-X-XXXXX-X</p>
+              <p className="text-blue-300 font-mono text-base sm:text-lg font-bold break-all">XXX-X-XXXXX-X</p>
               <p className="text-xs text-gray-500">SkyTrading Co., Ltd.</p>
             </div>
           </div>
