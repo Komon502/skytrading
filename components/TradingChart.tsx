@@ -1,0 +1,82 @@
+import { useEffect, useRef } from 'react'
+
+interface TradingChartProps {
+  symbol: string
+  isCrypto?: boolean
+  height?: number
+}
+
+// Maps our symbols to TradingView format
+function getTVSymbol(symbol: string, isCrypto: boolean): string {
+  if (isCrypto) {
+    // Binance crypto: BTCUSDT -> BINANCE:BTCUSDT
+    return `BINANCE:${symbol}`
+  }
+  // US stocks: AAPL -> NASDAQ:AAPL or NYSE:AAPL
+  const nasdaq = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'NFLX', 'AMD', 'INTC', 'CRM', 'ORCL']
+  if (nasdaq.includes(symbol)) return `NASDAQ:${symbol}`
+  // ETFs
+  if (['SPY', 'QQQ', 'DIA'].includes(symbol)) return `AMEX:${symbol}`
+  return `NYSE:${symbol}`
+}
+
+export default function TradingChart({ symbol, isCrypto = false, height = 400 }: TradingChartProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const widgetRef = useRef<any>(null)
+
+  useEffect(() => {
+    if (!containerRef.current) return
+
+    // Clean up previous widget
+    if (widgetRef.current) {
+      containerRef.current.innerHTML = ''
+    }
+
+    const tvSymbol = getTVSymbol(symbol, isCrypto)
+
+    const script = document.createElement('script')
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js'
+    script.type = 'text/javascript'
+    script.async = true
+    script.innerHTML = JSON.stringify({
+      autosize: true,
+      symbol: tvSymbol,
+      interval: 'D',
+      timezone: 'Asia/Bangkok',
+      theme: 'dark',
+      style: '1', // Candlestick
+      locale: 'th_TH',
+      enable_publishing: false,
+      allow_symbol_change: false,
+      support_host: 'https://www.tradingview.com',
+      backgroundColor: 'rgba(6, 13, 26, 1)',
+      gridColor: 'rgba(59, 127, 212, 0.08)',
+      hide_top_toolbar: false,
+      hide_legend: false,
+      save_image: false,
+      studies: ['RSI@tv-basicstudies', 'MACD@tv-basicstudies'],
+    })
+
+    const container = document.createElement('div')
+    container.className = 'tradingview-widget-container'
+    container.style.height = `${height}px`
+    container.style.width = '100%'
+
+    const inner = document.createElement('div')
+    inner.className = 'tradingview-widget-container__widget'
+    inner.style.height = `${height}px`
+    inner.style.width = '100%'
+
+    container.appendChild(inner)
+    container.appendChild(script)
+
+    containerRef.current.innerHTML = ''
+    containerRef.current.appendChild(container)
+
+    widgetRef.current = container
+  }, [symbol, isCrypto, height])
+
+  return (
+    <div ref={containerRef} style={{ height, width: '100%', background: '#060d1a', borderRadius: 8, overflow: 'hidden' }} />
+  )
+}
