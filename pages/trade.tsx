@@ -66,6 +66,25 @@ export default function TradePage() {
     setPositions(data || [])
   }
 
+  // Calculate holdings (net quantity per symbol)
+  const holdings = positions.reduce((acc, pos) => {
+    const key = pos.symbol
+    if (!acc[key]) {
+      acc[key] = { symbol: pos.symbol, quantity: 0, avgPrice: 0, totalCost: 0 }
+    }
+    const qty = parseFloat(pos.quantity)
+    if (pos.type === 'buy') {
+      const newTotalCost = acc[key].totalCost + (qty * pos.price)
+      const newQty = acc[key].quantity + qty
+      acc[key].quantity = newQty
+      acc[key].totalCost = newTotalCost
+      acc[key].avgPrice = newQty > 0 ? newTotalCost / newQty : 0
+    }
+    return acc
+  }, {} as Record<string, { symbol: string; quantity: number; avgPrice: number; totalCost: number }>)
+
+  const holdingsList = Object.values(holdings).filter((h: any) => h.quantity > 0)
+
   const fetchPrice = useCallback(async (sym: string, crypto: boolean) => {
     setPriceLoading(true)
     try {
@@ -97,13 +116,14 @@ export default function TradePage() {
       return
     }
 
-    // Check if selling more than owned
+    // Check if selling more than owned (net position: buys - sells)
     if (orderType === 'sell') {
-      const ownedQty = positions
-        .filter(p => p.mode === mode && p.symbol === selectedSymbol && p.type === 'buy')
-        .reduce((sum, p) => sum + parseFloat(p.quantity), 0)
-      if (qty > ownedQty) {
-        setOrderMsg({ type: 'error', text: `ขายเกินจำนวนที่มี (มี ${ownedQty} ${selectedSymbol}, จะขาย ${qty})` })
+      const symbolPositions = positions.filter(p => p.mode === mode && p.symbol === selectedSymbol)
+      const boughtQty = symbolPositions.filter(p => p.type === 'buy').reduce((sum, p) => sum + parseFloat(p.quantity), 0)
+      const soldQty = symbolPositions.filter(p => p.type === 'sell').reduce((sum, p) => sum + parseFloat(p.quantity), 0)
+      const netOwned = boughtQty - soldQty
+      if (qty > netOwned) {
+        setOrderMsg({ type: 'error', text: `ขายเกินจำนวนที่มี (มี ${netOwned.toFixed(2)} ${selectedSymbol}, จะขาย ${qty})` })
         return
       }
     }
@@ -129,6 +149,31 @@ export default function TradePage() {
       const balKey = mode === 'demo' ? 'demo_balance' : 'real_balance'
       const newBal = orderType === 'buy' ? balance - totalTHB : balance + totalTHB
       await supabase.from('wallets').update({ [balKey]: newBal }).eq('user_id', user.id)
+
+      // If selling, close the oldest buy position(s)
+      if (orderType === 'sell') {
+        const buyPositions = positions
+          .filter(p => p.mode === mode && p.symbol === selectedSymbol && p.type === 'buy' && p.status === 'open')
+          .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        
+        let remainingQtyToClose = qty
+        for (const pos of buyPositions) {
+          if (remainingQtyToClose <= 0) break
+          const posQty = parseFloat(pos.quantity)
+          const closeQty = Math.min(remainingQtyToClose, posQty)
+          
+          if (closeQty >= posQty) {
+            // Close entire position
+            await supabase.from('trades').update({ 
+              status: 'closed', 
+              closed_at: new Date().toISOString(),
+              close_price: price
+            }).eq('id', pos.id)
+          }
+          remainingQtyToClose -= closeQty
+        }
+      }
+
       await loadWallet(user.id)
       await loadPositions(user.id)
       setOrderMsg({ type: 'success', text: `${orderType === 'buy' ? 'ซื้อ' : 'ขาย'} ${qty} ${selectedSymbol} @ $${formatPrice(price)} สำเร็จ` })
@@ -362,30 +407,89 @@ export default function TradePage() {
         {/* Desktop positions sidebar */}
         <div className="w-72 border-l flex-col hidden lg:flex"
           style={{ borderColor: 'rgba(59,127,212,0.12)', background: 'rgba(10,22,40,0.3)' }}>
-          <div className="p-3 border-b text-xs font-semibold text-gray-400"
-            style={{ borderColor: 'rgba(59,127,212,0.12)' }}>
-            OPEN POSITIONS ({mode.toUpperCase()})
+
+          {/* Holdings Panel - My Assets */}
+          <div className="border-b" style={{ borderColor: 'rgba(59,127,212,0.12)' }}>
+            <div className="p-3 border-b text-xs font-semibold text-gray-400 flex justify-between"
+              style={{ borderColor: 'rgba(59,127,212,0.12)' }}>
+              <span>ทรัพย์สินของฉัน ({mode.toUpperCase()})</span>
+              <span className="text-gray-500">{holdingsList.length} รายการ</span>
+            </div>
+            <div className="max-h-40 overflow-y-auto p-2">
+              {holdingsList.length === 0 ? (
+                <div className="text-center text-xs text-gray-600 py-3">ยังไม่มีทรัพย์สิน</div>
+              ) : (
+                holdingsList.map((h: any) => (
+                  <div key={h.symbol} className="glass p-2 mb-2 text-xs">
+                    <div className="flex justify-between mb-1">
+                      <span className="font-bold text-white">{h.symbol}</span>
+                      <span className="text-green-400">{h.quantity.toFixed(4)} หน่วย</span>
+                    </div>
+                    <div className="flex justify-between text-gray-400">
+                      <span>ราคาเฉลี่ย</span>
+                      <span>${formatPrice(h.avgPrice)}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-400 mt-1">
+                      <span>มูลค่า</span>
+                      <span className="text-white">${formatPrice(h.totalCost)}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
-          <div className="flex-1 overflow-y-auto p-2">
-            {positions.filter(p => p.mode === mode).length === 0 ? (
-              <div className="text-center text-xs text-gray-600 mt-8">ยังไม่มีออเดอร์ที่เปิดอยู่</div>
+
+          {/* Open Positions */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-3 border-b text-xs font-semibold text-gray-400"
+              style={{ borderColor: 'rgba(59,127,212,0.12)' }}>
+              OPEN POSITIONS ({mode.toUpperCase()})
+            </div>
+            <div className="p-2">
+              {positions.filter(p => p.mode === mode).length === 0 ? (
+                <div className="text-center text-xs text-gray-600 mt-4">ยังไม่มีออเดอร์ที่เปิดอยู่</div>
+              ) : (
+                positions.filter(p => p.mode === mode).map(pos => (
+                  <div key={pos.id} className="glass p-3 mb-2 text-xs">
+                    <div className="flex justify-between mb-1">
+                      <span className="font-bold text-white">{pos.symbol}</span>
+                      <span className={pos.type === 'buy' ? 'text-green-400' : 'text-red-400'}>
+                        {pos.type.toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-gray-400">
+                      <span>Qty: {pos.quantity}</span>
+                      <span>@ ${formatPrice(pos.price)}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-400 mt-1">
+                      <span>Total</span>
+                      <span className="text-white">${formatPrice(pos.total)}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile holdings panel */}
+        <div className="lg:hidden border-t" style={{ borderColor: 'rgba(59,127,212,0.12)', background: 'rgba(10,22,40,0.5)' }}>
+          <div className="p-2 border-b text-xs font-semibold text-gray-400 flex justify-between"
+            style={{ borderColor: 'rgba(59,127,212,0.12)' }}>
+            <span>ทรัพย์สิน ({mode.toUpperCase()})</span>
+            <span className="text-gray-500">{holdingsList.length} รายการ</span>
+          </div>
+          <div className="max-h-24 overflow-y-auto p-2">
+            {holdingsList.length === 0 ? (
+              <div className="text-center text-xs text-gray-600 py-2">ยังไม่มีทรัพย์สิน</div>
             ) : (
-              positions.filter(p => p.mode === mode).map(pos => (
-                <div key={pos.id} className="glass p-3 mb-2 text-xs">
-                  <div className="flex justify-between mb-1">
-                    <span className="font-bold text-white">{pos.symbol}</span>
-                    <span className={pos.type === 'buy' ? 'text-green-400' : 'text-red-400'}>
-                      {pos.type.toUpperCase()}
-                    </span>
+              holdingsList.map((h: any) => (
+                <div key={h.symbol} className="glass p-2 mb-1 text-xs flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white">{h.symbol}</span>
+                    <span className="text-green-400">{h.quantity.toFixed(2)} หน่วย</span>
                   </div>
-                  <div className="flex justify-between text-gray-400">
-                    <span>Qty: {pos.quantity}</span>
-                    <span>@ ${formatPrice(pos.price)}</span>
-                  </div>
-                  <div className="flex justify-between text-gray-400 mt-1">
-                    <span>Total</span>
-                    <span className="text-white">${formatPrice(pos.total)}</span>
-                  </div>
+                  <div className="text-gray-400">Avg: ${formatPrice(h.avgPrice)}</div>
                 </div>
               ))
             )}

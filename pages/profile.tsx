@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
 import Navbar from '../components/Navbar'
-import { User, BarChart2, Shield, Wallet, TrendingUp, TrendingDown, Loader2, Eye, EyeOff } from 'lucide-react'
+import { User, BarChart2, Shield, Wallet, TrendingUp, TrendingDown, Loader2, Eye, EyeOff, Camera, Edit2, Check, X } from 'lucide-react'
 import { formatTHB } from '../lib/market'
 
-type ProfileTab = 'overview' | 'history' | 'security'
+type ProfileTab = 'overview' | 'history' | 'security' | 'profile'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -21,6 +21,14 @@ export default function ProfilePage() {
   const [passMsg, setPassMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [passLoading, setPassLoading] = useState(false)
 
+  // Profile form
+  const [profile, setProfile] = useState<any>(null)
+  const [editingName, setEditingName] = useState(false)
+  const [displayName, setDisplayName] = useState('')
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [profileMsg, setProfileMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [profileLoading, setProfileLoading] = useState(false)
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session) { router.replace('/auth'); return }
@@ -31,13 +39,92 @@ export default function ProfilePage() {
   }, [router.query.tab])
 
   async function loadData(userId: string) {
-    const [w, t] = await Promise.all([
+    const [w, t, p] = await Promise.all([
       supabase.from('wallets').select('*').eq('user_id', userId).single(),
-      supabase.from('trades').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(50)
+      supabase.from('trades').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(50),
+      supabase.from('user_profiles').select('*').eq('id', userId).single()
     ])
     setWallet(w.data)
     setTrades(t.data || [])
+    setProfile(p.data)
+    setDisplayName(p.data?.display_name || '')
     setLoading(false)
+  }
+
+  async function handleUpdateProfile(e?: React.FormEvent) {
+    if (e) e.preventDefault()
+    setProfileLoading(true)
+    setProfileMsg(null)
+    
+    const { error } = await supabase.from('user_profiles').upsert({
+      id: user?.id,
+      display_name: displayName,
+      updated_at: new Date().toISOString()
+    })
+    
+    if (error) {
+      setProfileMsg({ type: 'error', text: 'บันทึกไม่สำเร็จ' })
+    } else {
+      setProfileMsg({ type: 'success', text: 'บันทึกโปรไฟล์สำเร็จ' })
+      setEditingName(false)
+      loadData(user?.id)
+    }
+    setProfileLoading(false)
+  }
+
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      setProfileMsg({ type: 'error', text: 'ไฟล์ใหญ่เกินไป (สูงสุด 2MB)' })
+      return
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setProfileMsg({ type: 'error', text: 'ต้องเป็นไฟล์รูปภาพเท่านั้น' })
+      return
+    }
+
+    setUploadingAvatar(true)
+    setProfileMsg(null)
+
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${user?.id}/${Date.now()}.${fileExt}`
+
+    // Upload to storage with upsert option
+    const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file, {
+      upsert: true,
+      cacheControl: '3600'
+    })
+
+    if (uploadError) {
+      console.error('Upload error:', uploadError)
+      setProfileMsg({ type: 'error', text: `อัปโหลดรูปไม่สำเร็จ: ${uploadError.message}` })
+      setUploadingAvatar(false)
+      return
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName)
+
+    // Update profile
+    const { error } = await supabase.from('user_profiles').upsert({
+      id: user?.id,
+      avatar_url: publicUrl,
+      updated_at: new Date().toISOString()
+    })
+
+    if (error) {
+      console.error('Profile update error:', error)
+      setProfileMsg({ type: 'error', text: `บันทึกรูปภาพไม่สำเร็จ: ${error.message}` })
+    } else {
+      setProfileMsg({ type: 'success', text: 'อัปโหลดรูปภาพสำเร็จ' })
+      loadData(user?.id)
+    }
+    setUploadingAvatar(false)
   }
 
   async function handlePasswordChange(e: React.FormEvent) {
@@ -57,6 +144,7 @@ export default function ProfilePage() {
   const TABS = [
     { id: 'overview', label: 'ภาพรวม', icon: <Wallet size={15}/> },
     { id: 'history', label: 'ประวัติเทรด', icon: <BarChart2 size={15}/> },
+    { id: 'profile', label: 'โปรไฟล์', icon: <User size={15}/> },
     { id: 'security', label: 'ความปลอดภัย', icon: <Shield size={15}/> },
   ]
 
@@ -73,13 +161,22 @@ export default function ProfilePage() {
       <div className="max-w-3xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold"
-            style={{ background: 'linear-gradient(135deg, #1b4070, #3b7fd4)' }}>
-            {user?.email?.[0]?.toUpperCase()}
+          <div className="relative">
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="avatar" className="w-16 h-16 rounded-2xl object-cover"/>
+            ) : (
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold"
+                style={{ background: 'linear-gradient(135deg, #1b4070, #3b7fd4)' }}>
+                {profile?.display_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase()}
+              </div>
+            )}
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white">{user?.email}</h1>
-            <p className="text-sm text-gray-500">สมาชิกตั้งแต่ {new Date(user?.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <h1 className="text-xl font-bold text-white">
+              {profile?.display_name || user?.email?.split('@')[0]}
+            </h1>
+            <p className="text-sm text-gray-500">{user?.email}</p>
+            <p className="text-xs text-gray-600">สมาชิกตั้งแต่ {new Date(user?.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
           </div>
         </div>
 
@@ -177,6 +274,92 @@ export default function ProfilePage() {
                 </table>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Profile tab */}
+        {activeTab === 'profile' && (
+          <div className="animate-fadein max-w-md">
+            <div className="glass p-6">
+              <h3 className="font-semibold text-white mb-1">แก้ไขโปรไฟล์</h3>
+              <p className="text-xs text-gray-500 mb-5">อัปเดตชื่อและรูปโปรไฟล์ของคุณ</p>
+
+              {profileMsg && (
+                <div className={`mb-4 px-3 py-2.5 rounded-lg text-sm ${
+                  profileMsg.type === 'success'
+                    ? 'bg-green-400/10 border border-green-400/20 text-green-400'
+                    : 'bg-red-400/10 border border-red-400/20 text-red-400'
+                }`}>{profileMsg.text}</div>
+              )}
+
+              {/* Avatar Upload */}
+              <div className="flex flex-col items-center mb-6">
+                <div className="relative">
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt="avatar" className="w-24 h-24 rounded-2xl object-cover"/>
+                  ) : (
+                    <div className="w-24 h-24 rounded-2xl flex items-center justify-center text-3xl font-bold"
+                      style={{ background: 'linear-gradient(135deg, #1b4070, #3b7fd4)' }}>
+                      {profile?.display_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase()}
+                    </div>
+                  )}
+                  <label className={`absolute -bottom-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-colors ${
+                    uploadingAvatar ? 'bg-gray-600' : 'bg-blue-600 hover:bg-blue-700'
+                  }`}>
+                    {uploadingAvatar ? <Loader2 size={14} className="animate-spin text-white"/> : <Camera size={14} className="text-white"/>}
+                    <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={uploadingAvatar}/>
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 mt-3">คลิกที่กล้องเพื่อเปลี่ยนรูป</p>
+              </div>
+
+              {/* Display Name */}
+              <div className="mb-4">
+                <label className="text-xs text-gray-400 mb-1.5 block">ชื่อที่แสดง</label>
+                {editingName ? (
+                  <form onSubmit={handleUpdateProfile} className="flex gap-2">
+                    <input
+                      type="text"
+                      className="input-sky flex-1"
+                      placeholder="ชื่อที่แสดง"
+                      value={displayName}
+                      onChange={e => setDisplayName(e.target.value)}
+                      maxLength={30}
+                    />
+                    <button type="submit" className="btn-primary px-3" disabled={profileLoading}>
+                      {profileLoading ? <Loader2 size={16} className="animate-spin"/> : <Check size={16}/>}
+                    </button>
+                    <button type="button" onClick={() => {setEditingName(false); setDisplayName(profile?.display_name || '')}}
+                      className="px-3 py-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600">
+                      <X size={16}/>
+                    </button>
+                  </form>
+                ) : (
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-white/5">
+                    <span className="text-white">{profile?.display_name || '-'}</span>
+                    <button onClick={() => setEditingName(true)} className="text-blue-400 hover:text-blue-300">
+                      <Edit2 size={16}/>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Email (read only) */}
+              <div className="mb-4">
+                <label className="text-xs text-gray-400 mb-1.5 block">อีเมล</label>
+                <div className="p-3 rounded-lg bg-white/5 text-gray-400">
+                  {user?.email}
+                </div>
+              </div>
+
+              {/* User ID */}
+              <div>
+                <label className="text-xs text-gray-400 mb-1.5 block">รหัสผู้ใช้</label>
+                <div className="p-3 rounded-lg bg-white/5 text-gray-500 text-xs font-mono truncate">
+                  {user?.id}
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

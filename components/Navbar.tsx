@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import {
   BarChart2, User, Wallet, LogOut, Settings,
   ChevronDown, Menu, X, TrendingUp, Home,
-  CreditCard, Shield
+  CreditCard, Shield, PieChart
 } from 'lucide-react'
 
 interface NavbarProps {
@@ -58,7 +58,7 @@ export default function Navbar({ user, wallet, mode, onModeChange }: NavbarProps
           {/* Center nav links (desktop) */}
           {user && (
             <div className="hidden md:flex items-center gap-1">
-              <Link href="/" className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+              <Link href="/trade" className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                 router.pathname === '/' ? 'text-white bg-white/5' : 'text-gray-400 hover:text-white'
               }`}>
                 <span className="flex items-center gap-1.5"><Home size={14}/> หน้าหลัก</span>
@@ -67,6 +67,11 @@ export default function Navbar({ user, wallet, mode, onModeChange }: NavbarProps
                 router.pathname === '/trade' ? 'text-white bg-white/5' : 'text-gray-400 hover:text-white'
               }`}>
                 <span className="flex items-center gap-1.5"><BarChart2 size={14}/> เทรด</span>
+              </Link>
+              <Link href="/portfolio" className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                router.pathname === '/portfolio' ? 'text-white bg-white/5' : 'text-gray-400 hover:text-white'
+              }`}>
+                <span className="flex items-center gap-1.5"><PieChart size={14}/> พอร์ต</span>
               </Link>
               <Link href="/deposit" className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                 router.pathname === '/deposit' ? 'text-white bg-white/5' : 'text-gray-400 hover:text-white'
@@ -218,6 +223,7 @@ export default function Navbar({ user, wallet, mode, onModeChange }: NavbarProps
               )}
               <Link href="/" className="flex items-center gap-2 py-2.5 text-gray-300" onClick={() => setMobileOpen(false)}><Home size={16}/>หน้าหลัก</Link>
               <Link href="/trade" className="flex items-center gap-2 py-2.5 text-gray-300" onClick={() => setMobileOpen(false)}><BarChart2 size={16}/>เทรด</Link>
+              <Link href="/portfolio" className="flex items-center gap-2 py-2.5 text-gray-300" onClick={() => setMobileOpen(false)}><PieChart size={16}/>พอร์ต</Link>
               <Link href="/deposit" className="flex items-center gap-2 py-2.5 text-gray-300" onClick={() => setMobileOpen(false)}><CreditCard size={16}/>ฝากเงิน</Link>
               <Link href="/profile" className="flex items-center gap-2 py-2.5 text-gray-300" onClick={() => setMobileOpen(false)}><User size={16}/>โปรไฟล์</Link>
             </div>
