@@ -260,5 +260,105 @@ create trigger on_auth_user_created_profile
 --   for select using (bucket_id = 'avatars');
 
 -- ============================================================
+-- ADMIN LOGS TABLE
+-- Track admin actions for auditing
+-- ============================================================
+create table if not exists public.admin_logs (
+  id          uuid default uuid_generate_v4() primary key,
+  admin_id    uuid references auth.users(id) on delete cascade not null,
+  admin_email text not null,
+  action      text not null,  -- 'verify_deposit', 'reject_deposit', 'view_user', etc.
+  target_type text,           -- 'deposit', 'user', 'trade', etc.
+  target_id   text,           -- ID of the target
+  details     jsonb,          -- Additional details
+  ip_address  text,
+  user_agent  text,
+  created_at  timestamptz default now() not null
+);
+
+-- Index for performance
+drop index if exists admin_logs_admin_id_idx;
+create index admin_logs_admin_id_idx on public.admin_logs(admin_id);
+drop index if exists admin_logs_action_idx;
+create index admin_logs_action_idx on public.admin_logs(action);
+drop index if exists admin_logs_created_at_idx;
+create index admin_logs_created_at_idx on public.admin_logs(created_at);
+
+-- RLS: Only admins can view logs
+drop policy if exists "Admins can view admin logs" on public.admin_logs;
+create policy "Admins can view admin logs" on public.admin_logs 
+  for select using (
+    auth.uid() in (
+      select id from auth.users where email in (
+        'admin@skytrading.com',
+        'komon502@gmail.com'
+      )
+    )
+  );
+
+drop policy if exists "Admins can insert admin logs" on public.admin_logs;
+create policy "Admins can insert admin logs" on public.admin_logs 
+  for insert with check (
+    auth.uid() in (
+      select id from auth.users where email in (
+        'admin@skytrading.com',
+        'komon502@gmail.com'
+      )
+    )
+  );
+
+-- ============================================================
+-- Admin Users Table (for dynamic admin management)
+-- ============================================================
+
+-- Drop existing table if exists
+drop table if exists public.admin_users cascade;
+
+-- Create admin_users table
+create table public.admin_users (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade,
+  email text not null,
+  role text default 'admin' check (role in ('admin', 'super_admin')),
+  created_at timestamp with time zone default now(),
+  created_by uuid references auth.users(id),
+  unique(user_id)
+);
+
+-- Enable RLS
+alter table public.admin_users enable row level security;
+
+-- Only admins can view admin_users
+create policy "Admins can view admin users" on public.admin_users
+  for select using (
+    auth.uid() in (select user_id from public.admin_users)
+    or auth.uid() in (select id from auth.users where email in ('admin@skytrading.com', 'komon502@gmail.com'))
+  );
+
+-- Only super_admins can insert/update/delete
+create policy "Super admins can manage admin users" on public.admin_users
+  for all using (
+    auth.uid() in (select user_id from public.admin_users where role = 'super_admin')
+    or auth.uid() in (select id from auth.users where email in ('admin@skytrading.com', 'komon502@gmail.com'))
+  );
+
+-- Insert default super admin (adjust email as needed)
+insert into public.admin_users (user_id, email, role)
+select id, email, 'super_admin' 
+from auth.users 
+where email = 'admin@skytrading.com'
+on conflict do nothing;
+
+-- Create function to check if user is admin
+create or replace function public.is_db_admin(user_uuid uuid)
+returns boolean as $$
+begin
+  return exists (
+    select 1 from public.admin_users where user_id = user_uuid
+  );
+end;
+$$ language plpgsql security definer;
+
+-- ============================================================
 -- Done!
 -- ============================================================

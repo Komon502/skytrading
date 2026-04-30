@@ -3,10 +3,11 @@ import { useRouter } from 'next/router'
 import dynamic from 'next/dynamic'
 import { supabase } from '../lib/supabase'
 import { US_STOCKS, CRYPTOS, getStockQuote, getCryptoPrice, formatPrice, formatTHB } from '../lib/market'
+import { isMarketOpen, formatCountdown } from '../lib/market-hours'
 import Navbar from '../components/Navbar'
 import {
   TrendingUp, TrendingDown, Search, ChevronDown, Loader2,
-  Bitcoin, BarChart2
+  Bitcoin, BarChart2, Clock
 } from 'lucide-react'
 
 const TradingChart = dynamic(() => import('../components/TradingChart'), { ssr: false })
@@ -39,6 +40,9 @@ export default function TradePage() {
   const [orderLoading, setOrderLoading] = useState(false)
   const [orderMsg, setOrderMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
+  // Market Hours
+  const [marketStatus, setMarketStatus] = useState<{ isOpen: boolean; nextOpen?: Date; nextClose?: Date; message: string } | null>(null)
+
   // Positions
   const [positions, setPositions] = useState<any[]>([])
 
@@ -50,6 +54,16 @@ export default function TradePage() {
       loadPositions(data.session.user.id)
       setAuthLoading(false)
     })
+  }, [router])
+
+  // Check market status every minute
+  useEffect(() => {
+    const checkMarket = () => {
+      setMarketStatus(isMarketOpen())
+    }
+    checkMarket()
+    const interval = setInterval(checkMarket, 60000) // Update every minute
+    return () => clearInterval(interval)
   }, [])
 
   async function loadWallet(userId: string) {
@@ -103,6 +117,13 @@ export default function TradePage() {
   }, [selectedSymbol, isCrypto, fetchPrice])
 
   async function handleOrder() {
+    // Check market hours first
+    const marketCheck = isMarketOpen()
+    if (!marketCheck.isOpen) {
+      setOrderMsg({ type: 'error', text: `ไม่สามารถซื้อขายได้: ${marketCheck.message}` })
+      return
+    }
+
     if (!user || !wallet || !price) return
     const qty = parseFloat(quantity)
     if (!qty || qty <= 0) { setOrderMsg({ type: 'error', text: 'ใส่จำนวนให้ถูกต้อง' }); return }
@@ -355,6 +376,28 @@ export default function TradePage() {
                 </button>
               </div>
 
+              {/* Market Status Indicator */}
+              {marketStatus && (
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${
+                  marketStatus.isOpen
+                    ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                    : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                }`}>
+                  <Clock size={14} />
+                  <span>{marketStatus.message}</span>
+                  {!marketStatus.isOpen && marketStatus.nextOpen && (
+                    <span className="ml-auto text-gray-400">
+                      {formatCountdown(marketStatus.nextOpen)}
+                    </span>
+                  )}
+                  {marketStatus.isOpen && marketStatus.nextClose && (
+                    <span className="ml-auto text-gray-400">
+                      ปิดใน {formatCountdown(marketStatus.nextClose)}
+                    </span>
+                  )}
+                </div>
+              )}
+
               {/* Order input - responsive grid */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div className="flex-1">
@@ -391,14 +434,21 @@ export default function TradePage() {
                 </div>
               )}
 
-              <button onClick={handleOrder} disabled={orderLoading || !price}
+              <button 
+                onClick={handleOrder} 
+                disabled={orderLoading || !price || !marketStatus?.isOpen}
                 className={`mt-3 w-full py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all ${
-                  orderType === 'buy'
-                    ? 'bg-green-500/80 hover:bg-green-500 text-white border border-green-400/30'
-                    : 'bg-red-500/80 hover:bg-red-500 text-white border border-red-400/30'
+                  !marketStatus?.isOpen
+                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                    : orderType === 'buy'
+                      ? 'bg-green-500/80 hover:bg-green-500 text-white border border-green-400/30'
+                      : 'bg-red-500/80 hover:bg-red-500 text-white border border-red-400/30'
                 } disabled:opacity-40`}>
                 {orderLoading && <Loader2 size={16} className="animate-spin"/>}
-                {orderType === 'buy' ? '🟢 ซื้อ' : '🔴 ขาย'} {selectedSymbol}
+                {!marketStatus?.isOpen 
+                  ? '⏸️ ตลาดปิด' 
+                  : `${orderType === 'buy' ? '🟢 ซื้อ' : '🔴 ขาย'} ${selectedSymbol}`
+                }
               </button>
             </div>
           </div>

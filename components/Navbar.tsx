@@ -2,10 +2,11 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
+import { isAdmin } from '../lib/admin'
 import {
   BarChart2, User, Wallet, LogOut, Settings,
   ChevronDown, Menu, X, TrendingUp, Home,
-  CreditCard, Shield, PieChart
+  CreditCard, Shield, PieChart, LayoutDashboard
 } from 'lucide-react'
 
 interface NavbarProps {
@@ -20,6 +21,7 @@ export default function Navbar({ user, wallet, mode, onModeChange }: NavbarProps
   const [profileOpen, setProfileOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const userIsAdmin = isAdmin(user?.email)
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -78,6 +80,13 @@ export default function Navbar({ user, wallet, mode, onModeChange }: NavbarProps
               }`}>
                 <span className="flex items-center gap-1.5"><CreditCard size={14}/> ฝากเงิน</span>
               </Link>
+              {userIsAdmin && (
+                <Link href="/admin/dashboard" className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                  router.pathname.startsWith('/admin') ? 'text-white bg-red-500/20 border border-red-500/30' : 'text-red-400 hover:text-red-300'
+                }`}>
+                  <span className="flex items-center gap-1.5"><LayoutDashboard size={14}/> แอดมิน</span>
+                </Link>
+              )}
             </div>
           )}
 
@@ -226,6 +235,9 @@ export default function Navbar({ user, wallet, mode, onModeChange }: NavbarProps
               <Link href="/portfolio" className="flex items-center gap-2 py-2.5 text-gray-300" onClick={() => setMobileOpen(false)}><PieChart size={16}/>พอร์ต</Link>
               <Link href="/deposit" className="flex items-center gap-2 py-2.5 text-gray-300" onClick={() => setMobileOpen(false)}><CreditCard size={16}/>ฝากเงิน</Link>
               <Link href="/profile" className="flex items-center gap-2 py-2.5 text-gray-300" onClick={() => setMobileOpen(false)}><User size={16}/>โปรไฟล์</Link>
+              {userIsAdmin && (
+                <Link href="/admin/dashboard" className="flex items-center gap-2 py-2.5 text-red-400" onClick={() => setMobileOpen(false)}><LayoutDashboard size={16}/>แอดมิน</Link>
+              )}
             </div>
           </div>
         )}
