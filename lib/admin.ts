@@ -8,6 +8,7 @@ export const ADMIN_EMAILS = [
   // ใส่อีเมลแอดมินที่นี่ (พิมพ์เล็กทั้งหมด)
   'admin@skytrading.com',
   'komon502@gmail.com',
+  'dewstp128@gmail.com',
   // เพิ่มอีเมลที่สมัครไว้ตรงนี้ เช่น:
   // 'your.email@gmail.com',
 ]
