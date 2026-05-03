@@ -97,6 +97,14 @@ export default function TradePage() {
   }, {} as Record<string, { symbol: string; quantity: number; avgPrice: number; totalCost: number }>)
 
   const holdingsList = Object.values(holdings).filter((h: any) => h.quantity > 0)
+  
+  // Get current holding for selected symbol
+  const currentHolding = holdings[selectedSymbol]
+  const ownedQuantity = currentHolding?.quantity || 0
+  const avgBuyPrice = currentHolding?.avgPrice || 0
+  
+  // Calculate potential profit/loss for sell
+  const potentialSellPnL = price && ownedQuantity > 0 ? (price - avgBuyPrice) * ownedQuantity : 0
 
   // Get current asset list based on asset type
   const getCurrentAssets = useCallback(() => {
@@ -423,38 +431,70 @@ export default function TradePage() {
               <div className="px-4 pb-4">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="flex-1">
-                    <label className="text-xs text-gray-400 mb-2 block flex items-center gap-1">
-                      <Wallet size={12}/> จำนวน ({selectedSymbol})
+                    <label className="text-xs text-gray-400 mb-2 block flex items-center justify-between">
+                      <span className="flex items-center gap-1">
+                        <Wallet size={12}/> จำนวน ({selectedSymbol})
+                      </span>
+                      {orderType === 'sell' && ownedQuantity > 0 && (
+                        <button 
+                          onClick={() => setQuantity(ownedQuantity.toFixed(4))}
+                          className="text-xs text-yellow-400 hover:text-yellow-300 underline"
+                        >
+                          MAX ({ownedQuantity.toFixed(2)})
+                        </button>
+                      )}
                     </label>
                     <div className="relative">
                       <input
                         type="number"
-                        className="input-sky text-center font-mono"
+                        className="input-sky text-center font-mono text-white"
                         placeholder="0.00"
                         step="0.01"
                         min="0"
+                        max={orderType === 'sell' ? ownedQuantity : undefined}
                         value={quantity}
                         onChange={e => setQuantity(e.target.value)}
                       />
                     </div>
-                    {/* Quick amount buttons */}
-                    <div className="flex gap-1 mt-2">
-                      {['10', '50', '100', '500', '1000'].map((amount) => (
-                        <button
-                          key={amount}
-                          onClick={() => {
-                            if (price) {
-                              const qty = (parseFloat(amount) / price).toFixed(4)
-                              setQuantity(qty)
-                            }
-                          }}
-                          disabled={!price}
-                          className="flex-1 py-1 rounded text-xs transition-colors bg-white/5 text-gray-500 hover:bg-white/10 disabled:opacity-50"
-                        >
-                          ฿${amount}
-                        </button>
-                      ))}
-                    </div>
+                    {/* Quick amount buttons - Buy: ฿ amounts, Sell: % of holdings */}
+                    {orderType === 'buy' ? (
+                      <div className="flex gap-1 mt-2">
+                        {['1000', '5000', '10000', '50000'].map((amount) => (
+                          <button
+                            key={amount}
+                            onClick={() => {
+                              if (price) {
+                                const qty = (parseFloat(amount) / price).toFixed(4)
+                                setQuantity(qty)
+                              }
+                            }}
+                            disabled={!price}
+                            className="flex-1 py-1.5 rounded text-xs font-medium transition-all bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 disabled:opacity-50"
+                          >
+                            ฿{(parseInt(amount)/1000).toFixed(0)}K
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      ownedQuantity > 0 && (
+                        <div className="flex gap-1 mt-2">
+                          {[
+                            { pct: 25, label: '25%' },
+                            { pct: 50, label: '50%' },
+                            { pct: 75, label: '75%' },
+                            { pct: 100, label: 'ทั้งหมด' }
+                          ].map(({ pct, label }) => (
+                            <button
+                              key={pct}
+                              onClick={() => setQuantity((ownedQuantity * pct / 100).toFixed(4))}
+                              className="flex-1 py-1.5 rounded text-xs font-medium transition-all bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20"
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      )
+                    )}
                   </div>
                   <div className="flex-1">
                     <label className="text-xs text-gray-400 mb-2 block">ราคาปัจจุบัน</label>
@@ -476,6 +516,51 @@ export default function TradePage() {
                   </div>
                 </div>
 
+                {/* Preview Info */}
+                {orderType === 'sell' && ownedQuantity > 0 && (
+                  <div className="mt-3 p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/20">
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-gray-400">คุณมีอยู่:</span>
+                      <span className="text-white font-medium">{ownedQuantity.toFixed(4)} {selectedSymbol}</span>
+                    </div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-gray-400">ราคาซื้อเฉลี่ย:</span>
+                      <span className="text-white">฿{formatPrice(avgBuyPrice)}</span>
+                    </div>
+                    {quantity && parseFloat(quantity) > 0 && price && (
+                      <>
+                        <div className="flex justify-between text-xs mb-1 pt-1 border-t border-white/5">
+                          <span className="text-gray-400">จำนวนที่ขาย:</span>
+                          <span className="text-white">{parseFloat(quantity).toFixed(4)} {selectedSymbol}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-400">กำไร/ขาดทุน:</span>
+                          <span className={((price - avgBuyPrice) * parseFloat(quantity)) >= 0 ? 'text-green-400' : 'text-red-400'}>
+                            {((price - avgBuyPrice) * parseFloat(quantity)) >= 0 ? '+' : ''}฿{formatPrice((price - avgBuyPrice) * parseFloat(quantity))}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+                
+                {orderType === 'buy' && quantity && parseFloat(quantity) > 0 && price && (
+                  <div className="mt-3 p-3 rounded-lg bg-blue-500/5 border border-blue-500/20">
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-gray-400">จำนวน:</span>
+                      <span className="text-white font-medium">{parseFloat(quantity).toFixed(4)} {selectedSymbol}</span>
+                    </div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-gray-400">ราคาต่อหน่วย:</span>
+                      <span className="text-white">฿{formatPrice(price)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs pt-1 border-t border-white/5">
+                      <span className="text-gray-400">ยอดรวม:</span>
+                      <span className="text-blue-400 font-medium">฿{formatPrice(parseFloat(quantity) * price)}</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Message */}
                 {orderMsg && (
                   <div className={`mt-3 px-3 py-2 rounded-lg text-sm ${
@@ -489,7 +574,7 @@ export default function TradePage() {
 
                 <button 
                   onClick={handleOrder} 
-                  disabled={orderLoading || !price || !marketStatus?.isOpen}
+                  disabled={orderLoading || !price || !marketStatus?.isOpen || (orderType === 'sell' && parseFloat(quantity) > ownedQuantity)}
                   className={`mt-4 w-full py-4 rounded-xl font-bold text-base flex items-center justify-center gap-2 transition-all ${
                     !marketStatus?.isOpen
                       ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
@@ -500,7 +585,9 @@ export default function TradePage() {
                   {orderLoading && <Loader2 size={18} className="animate-spin"/>}
                   {!marketStatus?.isOpen 
                     ? '⏸️ ตลาดปิด' 
-                    : `${orderType === 'buy' ? '🟢 ซื้อ' : '🔴 ขาย'} ${selectedSymbol}`
+                    : orderType === 'buy'
+                      ? `🟢 ซื้อ ${selectedSymbol} จำนวน ${quantity || 0} หน่วย`
+                      : `🔴 ขาย ${selectedSymbol} จำนวน ${quantity || 0} หน่วย`
                   }
                 </button>
               </div>
