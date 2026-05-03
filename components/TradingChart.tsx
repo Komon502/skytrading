@@ -14,8 +14,8 @@ function getTVSymbol(symbol: string, isCrypto: boolean, isForex?: boolean): stri
     return `BINANCE:${symbol}`
   }
   if (isForex) {
-    // Forex: EURUSD -> FX:EURUSD (TradingView forex format)
-    return `FX:${symbol}`
+    // Forex: EURUSD -> OANDA:EURUSD (OANDA broker on TradingView)
+    return `OANDA:${symbol}`
   }
   // US stocks: AAPL -> NASDAQ:AAPL or NYSE:AAPL
   const nasdaq = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'NFLX', 'AMD', 'INTC', 'CRM', 'ORCL']
