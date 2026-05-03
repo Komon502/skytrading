@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import dynamic from 'next/dynamic'
 import { supabase } from '../lib/supabase'
-import { US_STOCKS, getStockQuote, formatPrice, formatTHB } from '../lib/market'
+import { US_STOCKS, CRYPTOS, FOREX_PAIRS, getStockQuote, getCryptoPrice, formatPrice, formatTHB } from '../lib/market'
 import { isUSStockMarketOpen, formatCountdown } from '../lib/market-hours'
 import Navbar from '../components/Navbar'
 import {
@@ -13,6 +13,7 @@ import {
 const TradingChart = dynamic(() => import('../components/TradingChart'), { ssr: false })
 
 type OrderType = 'buy' | 'sell'
+type AssetType = 'stocks' | 'crypto' | 'forex'
 
 export default function TradePage() {
   const router = useRouter()
@@ -24,6 +25,7 @@ export default function TradePage() {
   const [authLoading, setAuthLoading] = useState(true)
 
   // Market
+  const [assetType, setAssetType] = useState<AssetType>('stocks')
   const [search, setSearch] = useState('')
   const [selectedSymbol, setSelectedSymbol] = useState('AAPL')
   const [price, setPrice] = useState<number | null>(null)
@@ -96,22 +98,37 @@ export default function TradePage() {
 
   const holdingsList = Object.values(holdings).filter((h: any) => h.quantity > 0)
 
-  const fetchPrice = useCallback(async (sym: string) => {
+  // Get current asset list based on asset type
+  const getCurrentAssets = useCallback(() => {
+    switch (assetType) {
+      case 'crypto': return CRYPTOS
+      case 'forex': return FOREX_PAIRS
+      default: return US_STOCKS
+    }
+  }, [assetType])
+
+  const fetchPrice = useCallback(async (sym: string, type: AssetType = assetType) => {
     setPriceLoading(true)
     try {
-      const data = await getStockQuote(sym)
+      let data
+      if (type === 'crypto') {
+        data = await getCryptoPrice(sym)
+      } else {
+        // Stocks and forex use same API
+        data = await getStockQuote(sym)
+      }
       setPrice(data.price)
       setChange(data.change)
       setChangePct(data.changePercent)
     } catch { /* silent fail */ }
     setPriceLoading(false)
-  }, [])
+  }, [assetType])
 
   useEffect(() => {
-    fetchPrice(selectedSymbol)
-    const t = setInterval(() => fetchPrice(selectedSymbol), 15000)
+    fetchPrice(selectedSymbol, assetType)
+    const t = setInterval(() => fetchPrice(selectedSymbol, assetType), 15000)
     return () => clearInterval(t)
-  }, [selectedSymbol, fetchPrice])
+  }, [selectedSymbol, assetType, fetchPrice])
 
   async function handleOrder() {
     // Check market hours first
@@ -199,12 +216,13 @@ export default function TradePage() {
     setOrderLoading(false)
   }
 
+  const currentAssets = getCurrentAssets()
   const filteredAssets = search
-    ? US_STOCKS.filter(a =>
+    ? currentAssets.filter(a =>
         a.symbol.toLowerCase().includes(search.toLowerCase()) ||
         a.name.toLowerCase().includes(search.toLowerCase())
       )
-    : US_STOCKS
+    : currentAssets
 
   if (authLoading) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: '#060d1a' }}>
@@ -232,13 +250,35 @@ export default function TradePage() {
 
       {/* Main trading layout */}
       <div className="flex flex-col lg:flex-row h-[calc(100vh-64px)]">
-        {/* Left: stock list */}
+        {/* Left: asset list */}
         <div className="w-64 border-r flex flex-col shrink-0 hidden md:flex"
           style={{ borderColor: 'rgba(59,127,212,0.12)', background: 'rgba(10,22,40,0.4)' }}>
           <div className="p-3 border-b" style={{ borderColor: 'rgba(59,127,212,0.12)' }}>
-            <div className="flex items-center gap-2 mb-2">
-              <BarChart2 size={16} className="text-blue-400"/>
-              <span className="text-sm font-semibold text-white">หุ้น US</span>
+            {/* Asset Type Tabs */}
+            <div className="flex gap-1 mb-2">
+              {[
+                { id: 'stocks', label: 'หุ้น', icon: BarChart2 },
+                { id: 'crypto', label: 'คริปโต', icon: TrendingUp },
+                { id: 'forex', label: 'Forex', icon: TrendingDown },
+              ].map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  onClick={() => {
+                    setAssetType(id as AssetType)
+                    const assets = id === 'stocks' ? US_STOCKS : id === 'crypto' ? CRYPTOS : FOREX_PAIRS
+                    setSelectedSymbol(assets[0].symbol)
+                    setSearch('')
+                  }}
+                  className={`flex-1 py-1.5 px-2 rounded text-xs font-medium transition-all flex items-center justify-center gap-1 ${
+                    assetType === id
+                      ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                      : 'text-gray-500 hover:text-gray-300'
+                  }`}
+                >
+                  <Icon size={12} />
+                  {label}
+                </button>
+              ))}
             </div>
             <div className="relative">
               <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500"/>
@@ -247,10 +287,7 @@ export default function TradePage() {
             </div>
           </div>
           <div className="flex-1 overflow-y-auto">
-            {US_STOCKS.filter(a =>
-              a.symbol.toLowerCase().includes(search.toLowerCase()) ||
-              a.name.toLowerCase().includes(search.toLowerCase())
-            ).map(a => (
+            {filteredAssets.map(a => (
               <button key={a.symbol} onClick={() => setSelectedSymbol(a.symbol)}
                 className={`w-full text-left p-3 border-b transition-all hover:bg-white/5 flex items-center justify-between ${
                   selectedSymbol === a.symbol ? 'bg-white/5 border-blue-400/30' : 'border-transparent'
@@ -259,7 +296,7 @@ export default function TradePage() {
                   <div className="text-xs font-semibold text-white">{a.symbol}</div>
                   <div className="text-xs text-gray-500 truncate max-w-[100px]">{a.name}</div>
                 </div>
-                <span className="text-xs text-gray-600">{a.sector?.slice(0,4)}</span>
+                <span className="text-xs text-gray-600">{(a as any).sector?.slice(0,4) || (a as any).display?.slice(0,4)}</span>
               </button>
             ))}
           </div>
@@ -269,12 +306,36 @@ export default function TradePage() {
         <div className="flex-1 flex flex-col min-w-0">
           {/* Mobile asset selector */}
           <div className="md:hidden px-3 py-2 border-b" style={{ borderColor: 'rgba(59,127,212,0.12)', background: 'rgba(10,22,40,0.5)' }}>
+            {/* Mobile Asset Type Tabs */}
+            <div className="flex gap-1 mb-2">
+              {[
+                { id: 'stocks', label: 'หุ้น' },
+                { id: 'crypto', label: 'คริปโต' },
+                { id: 'forex', label: 'Forex' },
+              ].map(({ id, label }) => (
+                <button
+                  key={id}
+                  onClick={() => {
+                    setAssetType(id as AssetType)
+                    const assets = id === 'stocks' ? US_STOCKS : id === 'crypto' ? CRYPTOS : FOREX_PAIRS
+                    setSelectedSymbol(assets[0].symbol)
+                  }}
+                  className={`flex-1 py-1.5 px-2 rounded text-xs font-medium transition-all ${
+                    assetType === id
+                      ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                      : 'text-gray-500 hover:text-gray-300'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             <select 
               className="input-sky text-sm w-full"
               value={selectedSymbol}
               onChange={(e) => setSelectedSymbol(e.target.value)}
             >
-              {US_STOCKS.map(a => (
+              {filteredAssets.map(a => (
                 <option key={a.symbol} value={a.symbol}>{a.symbol} - {a.name}</option>
               ))}
             </select>
