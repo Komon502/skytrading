@@ -101,9 +101,9 @@ ALTER TABLE custom_forex_pairs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE custom_forex_trades ENABLE ROW LEVEL SECURITY;
 ALTER TABLE custom_forex_price_history ENABLE ROW LEVEL SECURITY;
 
--- Everyone can view active forex pairs
+-- Everyone can view active forex pairs (authenticated users)
 CREATE POLICY "Anyone can view active forex pairs" ON custom_forex_pairs
-  FOR SELECT USING (is_active = true);
+  FOR SELECT TO authenticated USING (is_active = true);
 
 -- Only admin can manage forex pairs (using email check to avoid recursion)
 CREATE POLICY "Only admin can insert forex" ON custom_forex_pairs
