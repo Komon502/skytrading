@@ -386,7 +386,7 @@ export default function TradePage() {
 
           {/* Chart */}
           <div className="flex-1 min-h-0 relative">
-            <TradingChart symbol={selectedSymbol} isCrypto={false} height={320}/>
+            <TradingChart symbol={selectedSymbol} isCrypto={assetType === 'crypto'} isForex={assetType === 'forex'} height={320}/>
 
             {/* Improved Order Panel */}
             <div className="border-t" style={{ borderColor: 'rgba(59,127,212,0.12)', background: 'rgba(6,13,26,0.98)' }}>
