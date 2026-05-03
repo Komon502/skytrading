@@ -44,6 +44,15 @@ export default function TradePage() {
 
   // Positions
   const [positions, setPositions] = useState<any[]>([])
+  
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -386,7 +395,7 @@ export default function TradePage() {
 
           {/* Chart */}
           <div className="flex-1 min-h-0 relative">
-            <TradingChart symbol={selectedSymbol} isCrypto={assetType === 'crypto'} isForex={assetType === 'forex'} height={280}/>
+            <TradingChart symbol={selectedSymbol} isCrypto={assetType === 'crypto'} isForex={assetType === 'forex'} height={280} isMobile={isMobile}/>
 
             {/* Improved Order Panel */}
             <div className="border-t" style={{ borderColor: 'rgba(59,127,212,0.12)', background: 'rgba(6,13,26,0.98)' }}>

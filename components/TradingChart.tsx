@@ -5,6 +5,7 @@ interface TradingChartProps {
   isCrypto?: boolean
   isForex?: boolean
   height?: number
+  isMobile?: boolean
 }
 
 // Maps our symbols to TradingView format
@@ -25,7 +26,7 @@ function getTVSymbol(symbol: string, isCrypto: boolean, isForex?: boolean): stri
   return `NYSE:${symbol}`
 }
 
-export default function TradingChart({ symbol, isCrypto = false, isForex = false, height = 400 }: TradingChartProps) {
+export default function TradingChart({ symbol, isCrypto = false, isForex = false, height = 400, isMobile = false }: TradingChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const widgetRef = useRef<any>(null)
 
@@ -56,10 +57,11 @@ export default function TradingChart({ symbol, isCrypto = false, isForex = false
       support_host: 'https://www.tradingview.com',
       backgroundColor: 'rgba(6, 13, 26, 1)',
       gridColor: 'rgba(59, 127, 212, 0.08)',
-      hide_top_toolbar: false,
+      hide_top_toolbar: isMobile, // Hide on mobile - toolbar buttons don't work on touch
+      hide_side_toolbar: isMobile, // Hide side toolbar on mobile too
       hide_legend: false,
       save_image: false,
-      studies: ['RSI@tv-basicstudies', 'MACD@tv-basicstudies'],
+      studies: isMobile ? [] : ['RSI@tv-basicstudies', 'MACD@tv-basicstudies'], // Remove studies on mobile for cleaner view
     })
 
     const container = document.createElement('div')
@@ -79,7 +81,7 @@ export default function TradingChart({ symbol, isCrypto = false, isForex = false
     containerRef.current.appendChild(container)
 
     widgetRef.current = container
-  }, [symbol, isCrypto, isForex, height])
+  }, [symbol, isCrypto, isForex, height, isMobile])
 
   return (
     <div ref={containerRef} style={{ height, width: '100%', background: '#060d1a', borderRadius: 8, overflow: 'hidden' }} />
