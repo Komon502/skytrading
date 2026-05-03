@@ -376,3 +376,127 @@ export function getAssetDisplayName(symbol: string): string {
   
   return symbol
 }
+
+// ============================================================
+// Custom Forex Functions (Admin-controlled forex pairs)
+// ============================================================
+
+import { supabase } from './supabase'
+
+export interface CustomForexPair {
+  id: string
+  symbol: string
+  name: string
+  description: string
+  current_price: number
+  base_price: number
+  is_active: boolean
+  is_demo_only: boolean
+  is_market_open: boolean
+  player_win_rate: number
+}
+
+// Get all active custom forex pairs
+export async function getCustomForexPairs(): Promise<CustomForexPair[]> {
+  const { data, error } = await supabase
+    .from('custom_forex_pairs')
+    .select('*')
+    .eq('is_active', true)
+    .order('symbol')
+  
+  if (error) {
+    console.error('Error fetching custom forex:', error)
+    return []
+  }
+  
+  return data || []
+}
+
+// Get custom forex price
+export async function getCustomForexPrice(symbol: string) {
+  const { data, error } = await supabase
+    .from('custom_forex_pairs')
+    .select('current_price, price_volatility, is_market_open, player_win_rate')
+    .eq('symbol', symbol)
+    .eq('is_active', true)
+    .single()
+  
+  if (error || !data) {
+    throw new Error('Custom forex pair not found')
+  }
+  
+  // Calculate simulated change based on volatility
+  const change = (Math.random() - 0.5) * 2 * data.price_volatility * data.current_price
+  const changePercent = (change / data.current_price) * 100
+  
+  return {
+    price: data.current_price,
+    change,
+    changePercent,
+    isMarketOpen: data.is_market_open,
+    winRate: data.player_win_rate
+  }
+}
+
+// Place custom forex trade
+export async function placeCustomForexTrade(
+  userId: string,
+  forexId: string,
+  type: 'buy' | 'sell',
+  quantity: number,
+  mode: 'demo' | 'real'
+) {
+  // Get current price
+  const { data: forex, error: forexError } = await supabase
+    .from('custom_forex_pairs')
+    .select('current_price, is_market_open, is_demo_only')
+    .eq('id', forexId)
+    .single()
+  
+  if (forexError || !forex) {
+    throw new Error('Forex pair not found')
+  }
+  
+  if (!forex.is_market_open) {
+    throw new Error('Market is closed for this pair')
+  }
+  
+  if (forex.is_demo_only && mode !== 'demo') {
+    throw new Error('This pair is demo-only')
+  }
+  
+  const total = quantity * forex.current_price
+  
+  // Create trade
+  const { data: trade, error } = await supabase
+    .from('custom_forex_trades')
+    .insert({
+      user_id: userId,
+      forex_id: forexId,
+      type,
+      quantity,
+      entry_price: forex.current_price,
+      status: 'open',
+      mode,
+    })
+    .select()
+    .single()
+  
+  if (error) {
+    throw new Error('Failed to create trade: ' + error.message)
+  }
+  
+  return { trade, total }
+}
+
+// Close custom forex trade (with win rate influence)
+export async function closeCustomForexTrade(tradeId: string) {
+  const { data, error } = await supabase
+    .rpc('close_custom_forex_trade', { trade_id: tradeId })
+  
+  if (error) {
+    throw new Error('Failed to close trade: ' + error.message)
+  }
+  
+  return data
+}

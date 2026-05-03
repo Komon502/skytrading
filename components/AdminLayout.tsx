@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import { isAdmin, ADMIN_NAV } from '../lib/admin'
 import {
   LayoutDashboard, Users, CreditCard, BarChart2, Settings,
-  LogOut, Shield, Menu, X, ChevronRight
+  DollarSign, LogOut, Shield, Menu, X, ChevronRight
 } from 'lucide-react'
 
 interface AdminLayoutProps {
@@ -14,7 +14,7 @@ interface AdminLayoutProps {
 }
 
 const ICON_MAP: Record<string, React.ElementType> = {
-  LayoutDashboard, Users, CreditCard, BarChart2, Settings
+  LayoutDashboard, Users, CreditCard, BarChart2, Settings, DollarSign
 }
 
 export default function AdminLayout({ children, activeTab = 'dashboard' }: AdminLayoutProps) {

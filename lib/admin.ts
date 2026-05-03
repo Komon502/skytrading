@@ -33,6 +33,7 @@ export const ADMIN_ROUTES = [
   '/admin/users',
   '/admin/deposits',
   '/admin/trades',
+  '/admin/forex',
   '/admin/settings',
 ]
 
@@ -47,5 +48,6 @@ export const ADMIN_NAV = [
   { id: 'users', label: 'ผู้ใช้งาน', href: '/admin/users', icon: 'Users' },
   { id: 'deposits', label: 'การฝากเงิน', href: '/admin/deposits', icon: 'CreditCard' },
   { id: 'trades', label: 'การเทรด', href: '/admin/trades', icon: 'BarChart2' },
+  { id: 'forex', label: 'จัดการ Forex', href: '/admin/forex', icon: 'DollarSign' },
   { id: 'settings', label: 'ตั้งค่า', href: '/admin/settings', icon: 'Settings' },
 ]
