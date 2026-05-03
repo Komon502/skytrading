@@ -3,14 +3,19 @@ import { useEffect, useRef } from 'react'
 interface TradingChartProps {
   symbol: string
   isCrypto?: boolean
+  isForex?: boolean
   height?: number
 }
 
 // Maps our symbols to TradingView format
-function getTVSymbol(symbol: string, isCrypto: boolean): string {
+function getTVSymbol(symbol: string, isCrypto: boolean, isForex?: boolean): string {
   if (isCrypto) {
     // Binance crypto: BTCUSDT -> BINANCE:BTCUSDT
     return `BINANCE:${symbol}`
+  }
+  if (isForex) {
+    // Forex: EURUSD -> FX:EURUSD (TradingView forex format)
+    return `FX:${symbol}`
   }
   // US stocks: AAPL -> NASDAQ:AAPL or NYSE:AAPL
   const nasdaq = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'NFLX', 'AMD', 'INTC', 'CRM', 'ORCL']
@@ -20,7 +25,7 @@ function getTVSymbol(symbol: string, isCrypto: boolean): string {
   return `NYSE:${symbol}`
 }
 
-export default function TradingChart({ symbol, isCrypto = false, height = 400 }: TradingChartProps) {
+export default function TradingChart({ symbol, isCrypto = false, isForex = false, height = 400 }: TradingChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const widgetRef = useRef<any>(null)
 
@@ -32,7 +37,7 @@ export default function TradingChart({ symbol, isCrypto = false, height = 400 }:
       containerRef.current.innerHTML = ''
     }
 
-    const tvSymbol = getTVSymbol(symbol, isCrypto)
+    const tvSymbol = getTVSymbol(symbol, isCrypto, isForex)
 
     const script = document.createElement('script')
     script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js'
@@ -74,7 +79,7 @@ export default function TradingChart({ symbol, isCrypto = false, height = 400 }:
     containerRef.current.appendChild(container)
 
     widgetRef.current = container
-  }, [symbol, isCrypto, height])
+  }, [symbol, isCrypto, isForex, height])
 
   return (
     <div ref={containerRef} style={{ height, width: '100%', background: '#060d1a', borderRadius: 8, overflow: 'hidden' }} />

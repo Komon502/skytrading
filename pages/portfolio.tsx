@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
-import { formatPrice, formatTHB } from '../lib/market'
+import { formatPrice, formatTHB, getAssetType, getAssetDisplayName, US_STOCKS, CRYPTOS, FOREX_PAIRS } from '../lib/market'
 import Navbar from '../components/Navbar'
 import {
   PieChart, TrendingUp, TrendingDown, Wallet, Package,
-  ArrowRight, Loader2, DollarSign, BarChart3
+  ArrowRight, Loader2, DollarSign, BarChart3,
+  Globe, Bitcoin, BarChart2, Filter
 } from 'lucide-react'
+
+type AssetType = 'all' | 'stock' | 'crypto' | 'forex'
 
 type Holding = {
   symbol: string
@@ -17,6 +20,7 @@ type Holding = {
   currentValue?: number
   pnl?: number
   pnlPercent?: number
+  type: 'stock' | 'crypto' | 'forex'
 }
 
 export default function PortfolioPage() {
@@ -26,8 +30,15 @@ export default function PortfolioPage() {
   const [mode, setMode] = useState<'demo' | 'real'>('demo')
   const [loading, setLoading] = useState(true)
   const [holdings, setHoldings] = useState<Holding[]>([])
+  const [filteredHoldings, setFilteredHoldings] = useState<Holding[]>([])
   const [totalValue, setTotalValue] = useState(0)
   const [totalCost, setTotalCost] = useState(0)
+  const [filter, setFilter] = useState<AssetType>('all')
+  const [assetTotals, setAssetTotals] = useState({
+    stock: { value: 0, cost: 0 },
+    crypto: { value: 0, cost: 0 },
+    forex: { value: 0, cost: 0 },
+  })
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -58,52 +69,99 @@ export default function PortfolioPage() {
       return
     }
 
-    const holdingsList = holdingsData.map((h: any) => ({
+    const holdingsList: Holding[] = holdingsData.map((h: any) => ({
       symbol: h.symbol,
       quantity: parseFloat(h.quantity),
       avgPrice: parseFloat(h.avg_price),
       totalCost: parseFloat(h.total_cost),
-    })) as Holding[]
+      type: getAssetType(h.symbol),
+    }))
 
     // Fetch current prices and calculate P&L
     let tValue = 0
     let tCost = 0
+    const assetValues = {
+      stock: { value: 0, cost: 0 },
+      crypto: { value: 0, cost: 0 },
+      forex: { value: 0, cost: 0 },
+    }
 
     for (const h of holdingsList) {
-      // Try to fetch current price (simplified - in real app use WebSocket)
-      const isCrypto = ['BTC', 'ETH', 'SOL', 'ADA', 'DOT', 'MATIC', 'AVAX', 'FTM', 'NEAR', 'ATOM'].includes(h.symbol)
       try {
-        let price = h.avgPrice // Fallback to avg price
-        if (isCrypto) {
+        let price = h.avgPrice // Fallback
+        
+        if (h.type === 'crypto') {
+          // Crypto: fetch from Binance
           const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${h.symbol}USDT`)
           const data = await res.json()
           price = parseFloat(data.price)
+        } else if (h.type === 'stock') {
+          // Stock: simulated for demo (in production use real API)
+          price = h.avgPrice * (1 + (Math.random() * 0.1 - 0.05))
         } else {
-          // For stocks, use Finnhub or fallback
-          price = h.avgPrice * (1 + (Math.random() * 0.1 - 0.05)) // Simulated for demo
+          // Forex: simulated for demo
+          price = h.avgPrice * (1 + (Math.random() * 0.02 - 0.01))
         }
+        
         h.currentPrice = price
         h.currentValue = h.quantity * price
         h.pnl = h.currentValue - h.totalCost
         h.pnlPercent = (h.pnl / h.totalCost) * 100
         tValue += h.currentValue
+        
+        // Update asset type totals
+        assetValues[h.type].value += h.currentValue
+        assetValues[h.type].cost += h.totalCost
       } catch {
         h.currentPrice = h.avgPrice
         h.currentValue = h.totalCost
         h.pnl = 0
         h.pnlPercent = 0
         tValue += h.totalCost
+        assetValues[h.type].value += h.totalCost
+        assetValues[h.type].cost += h.totalCost
       }
       tCost += h.totalCost
     }
 
     setHoldings(holdingsList.sort((a, b) => (b.currentValue || 0) - (a.currentValue || 0)))
+    setFilteredHoldings(holdingsList)
     setTotalValue(tValue)
     setTotalCost(tCost)
+    setAssetTotals(assetValues)
   }
 
   const totalPnl = totalValue - totalCost
   const totalPnlPercent = totalCost > 0 ? (totalPnl / totalCost) * 100 : 0
+
+  // Filter holdings based on selected type
+  useEffect(() => {
+    if (filter === 'all') {
+      setFilteredHoldings(holdings)
+    } else {
+      setFilteredHoldings(holdings.filter(h => h.type === filter))
+    }
+  }, [filter, holdings])
+
+  // Get icon for asset type
+  const getAssetIcon = (type: string) => {
+    switch (type) {
+      case 'stock': return <BarChart2 size={16} className="text-blue-400" />
+      case 'crypto': return <Bitcoin size={16} className="text-orange-400" />
+      case 'forex': return <Globe size={16} className="text-green-400" />
+      default: return <Package size={16} className="text-gray-400" />
+    }
+  }
+
+  // Get color for asset type
+  const getAssetColor = (type: string) => {
+    switch (type) {
+      case 'stock': return 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+      case 'crypto': return 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+      case 'forex': return 'bg-green-500/20 text-green-400 border-green-500/30'
+      default: return 'bg-gray-500/20 text-gray-400'
+    }
+  }
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: '#060d1a' }}>
@@ -152,7 +210,7 @@ export default function PortfolioPage() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {/* Total Value */}
           <div className="glass p-5 rounded-xl">
             <div className="flex items-center gap-3 mb-3">
@@ -161,8 +219,8 @@ export default function PortfolioPage() {
               </div>
               <span className="text-sm text-gray-400">มูลค่าพอร์ต</span>
             </div>
-            <p className="text-2xl font-bold text-white">${formatPrice(totalValue)}</p>
-            <p className="text-sm text-gray-500">≈ ฿{formatTHB(totalValue * 36)}</p>
+            <p className="text-2xl font-bold text-white">฿{formatPrice(totalValue)}</p>
+            <p className="text-sm text-gray-500">มูลค่าพอร์ตรวม</p>
           </div>
 
           {/* Total Cost */}
@@ -173,7 +231,7 @@ export default function PortfolioPage() {
               </div>
               <span className="text-sm text-gray-400">ต้นทุนรวม</span>
             </div>
-            <p className="text-2xl font-bold text-white">${formatPrice(totalCost)}</p>
+            <p className="text-2xl font-bold text-white">฿{formatPrice(totalCost)}</p>
             <p className="text-sm text-gray-500">ทุนเฉลี่ยทั้งหมด</p>
           </div>
 
@@ -188,7 +246,7 @@ export default function PortfolioPage() {
               <span className="text-sm text-gray-400">กำไร/ขาดทุน</span>
             </div>
             <p className={`text-2xl font-bold ${totalPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {totalPnl >= 0 ? '+' : ''}{formatPrice(totalPnl)}
+              {totalPnl >= 0 ? '+' : ''}฿{formatPrice(totalPnl)}
             </p>
             <p className={`text-sm ${totalPnlPercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
               {totalPnlPercent >= 0 ? '+' : ''}{totalPnlPercent.toFixed(2)}%
@@ -208,25 +266,102 @@ export default function PortfolioPage() {
           </div>
         </div>
 
+        {/* Asset Type Breakdown */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div className="glass p-4 rounded-xl border border-blue-500/20">
+            <div className="flex items-center gap-2 mb-2">
+              <BarChart2 size={16} className="text-blue-400"/>
+              <span className="text-sm text-gray-400">หุ้น (Stocks)</span>
+            </div>
+            <p className="text-xl font-bold text-white">฿{formatPrice(assetTotals.stock.value)}</p>
+            <p className="text-xs text-gray-500">{holdings.filter(h => h.type === 'stock').length} รายการ</p>
+          </div>
+          <div className="glass p-4 rounded-xl border border-orange-500/20">
+            <div className="flex items-center gap-2 mb-2">
+              <Bitcoin size={16} className="text-orange-400"/>
+              <span className="text-sm text-gray-400">คริปโต (Crypto)</span>
+            </div>
+            <p className="text-xl font-bold text-white">฿{formatPrice(assetTotals.crypto.value)}</p>
+            <p className="text-xs text-gray-500">{holdings.filter(h => h.type === 'crypto').length} รายการ</p>
+          </div>
+          <div className="glass p-4 rounded-xl border border-green-500/20">
+            <div className="flex items-center gap-2 mb-2">
+              <Globe size={16} className="text-green-400"/>
+              <span className="text-sm text-gray-400">ฟอเร็กซ์ (Forex)</span>
+            </div>
+            <p className="text-xl font-bold text-white">฿{formatPrice(assetTotals.forex.value)}</p>
+            <p className="text-xs text-gray-500">{holdings.filter(h => h.type === 'forex').length} รายการ</p>
+          </div>
+        </div>
+
         {/* Holdings Table */}
         <div className="glass rounded-xl overflow-hidden">
-          <div className="p-4 border-b flex justify-between items-center" style={{ borderColor: 'rgba(59,127,212,0.12)' }}>
+          <div className="p-4 border-b flex flex-wrap justify-between items-center gap-3" style={{ borderColor: 'rgba(59,127,212,0.12)' }}>
             <h2 className="font-semibold text-white flex items-center gap-2">
               <BarChart3 size={18} className="text-blue-400"/>
               รายการทรัพย์สิน
             </h2>
-            <a href="/trade" className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1">
-              ไปเทรด <ArrowRight size={14}/>
-            </a>
+            <div className="flex items-center gap-2">
+              {/* Filter Buttons */}
+              <div className="flex items-center gap-1 p-1 rounded-lg" style={{ background: 'rgba(6,13,26,0.8)' }}>
+                <button
+                  onClick={() => setFilter('all')}
+                  className={`px-3 py-1 rounded text-xs font-medium transition-all ${
+                    filter === 'all' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  ทั้งหมด
+                </button>
+                <button
+                  onClick={() => setFilter('stock')}
+                  className={`px-3 py-1 rounded text-xs font-medium transition-all flex items-center gap-1 ${
+                    filter === 'stock' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <BarChart2 size={12}/> หุ้น
+                </button>
+                <button
+                  onClick={() => setFilter('crypto')}
+                  className={`px-3 py-1 rounded text-xs font-medium transition-all flex items-center gap-1 ${
+                    filter === 'crypto' ? 'bg-orange-500 text-white' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <Bitcoin size={12}/> คริปโต
+                </button>
+                <button
+                  onClick={() => setFilter('forex')}
+                  className={`px-3 py-1 rounded text-xs font-medium transition-all flex items-center gap-1 ${
+                    filter === 'forex' ? 'bg-green-500 text-white' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <Globe size={12}/> ฟอเร็กซ์
+                </button>
+              </div>
+              <a href="/trade" className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                ไปเทรด <ArrowRight size={14}/>
+              </a>
+            </div>
           </div>
 
-          {holdings.length === 0 ? (
+          {filteredHoldings.length === 0 ? (
             <div className="p-12 text-center">
               <Package size={48} className="text-gray-600 mx-auto mb-4"/>
-              <p className="text-gray-500">ยังไม่มีทรัพย์สินใน{mode === 'demo' ? 'โหมดทดลอง' : 'บัญชีจริง'}</p>
-              <a href="/trade" className="inline-block mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                เริ่มเทรด
-              </a>
+              <p className="text-gray-500">
+                {holdings.length === 0 
+                  ? `ยังไม่มีทรัพย์สินใน${mode === 'demo' ? 'โหมดทดลอง' : 'บัญชีจริง'}`
+                  : 'ไม่มีทรัพย์สินที่ตรงกับตัวกรอง'}
+              </p>
+              <div className="flex gap-2 justify-center mt-4">
+                <a href="/trade" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                  เทรดหุ้น
+                </a>
+                <a href="/crypto" className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm">
+                  เทรดคริปโต
+                </a>
+                <a href="/forex" className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
+                  เทรดฟอเร็กซ์
+                </a>
+              </div>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -242,32 +377,32 @@ export default function PortfolioPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {holdings.map((h) => (
+                  {filteredHoldings.map((h) => (
                     <tr key={h.symbol} className="border-b hover:bg-white/5 transition-colors" style={{ borderColor: 'rgba(59,127,212,0.08)' }}>
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center font-bold text-blue-400 text-sm">
-                            {h.symbol.slice(0, 2)}
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm ${getAssetColor(h.type)}`}>
+                            {getAssetIcon(h.type)}
                           </div>
                           <div>
                             <p className="font-semibold text-white">{h.symbol}</p>
-                            <p className="text-xs text-gray-500">{mode === 'demo' ? 'Demo' : 'Real'}</p>
+                            <p className="text-xs text-gray-500 capitalize">{h.type === 'stock' ? 'หุ้น' : h.type === 'crypto' ? 'คริปโต' : 'ฟอเร็กซ์'} · {mode === 'demo' ? 'Demo' : 'Real'}</p>
                           </div>
                         </div>
                       </td>
                       <td className="p-4 text-right">
-                        <p className="font-medium text-white">{h.quantity.toFixed(4)}</p>
-                        <p className="text-xs text-gray-500">หน่วย</p>
+                        <p className="font-medium text-white">{h.quantity.toFixed(h.type === 'crypto' ? 6 : h.type === 'forex' ? 2 : 4)}</p>
+                        <p className="text-xs text-gray-500">{h.type === 'forex' ? 'lot' : 'หน่วย'}</p>
                       </td>
                       <td className="p-4 text-right">
-                        <p className="text-white">${formatPrice(h.avgPrice)}</p>
+                        <p className="text-white">฿{formatPrice(h.avgPrice)}</p>
                       </td>
                       <td className="p-4 text-right">
-                        <p className="text-white">${formatPrice(h.currentPrice || h.avgPrice)}</p>
+                        <p className="text-white">฿{formatPrice(h.currentPrice || h.avgPrice)}</p>
                       </td>
                       <td className="p-4 text-right">
-                        <p className="font-medium text-white">${formatPrice(h.currentValue || h.totalCost)}</p>
-                        <p className="text-xs text-gray-500">ทุน ${formatPrice(h.totalCost)}</p>
+                        <p className="font-medium text-white">฿{formatPrice(h.currentValue || h.totalCost)}</p>
+                        <p className="text-xs text-gray-500">ทุน ฿{formatPrice(h.totalCost)}</p>
                       </td>
                       <td className="p-4 text-right">
                         <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-sm font-medium ${
