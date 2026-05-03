@@ -72,12 +72,12 @@ CREATE TABLE IF NOT EXISTS custom_forex_price_history (
   CONSTRAINT fk_forex FOREIGN KEY (forex_id) REFERENCES custom_forex_pairs(id)
 );
 
--- Create indexes
-CREATE INDEX idx_custom_forex_pairs_active ON custom_forex_pairs(is_active);
-CREATE INDEX idx_custom_forex_trades_user ON custom_forex_trades(user_id);
-CREATE INDEX idx_custom_forex_trades_forex ON custom_forex_trades(forex_id);
-CREATE INDEX idx_custom_forex_trades_status ON custom_forex_trades(status);
-CREATE INDEX idx_price_history_forex_time ON custom_forex_price_history(forex_id, timestamp DESC);
+-- Create indexes (idempotent)
+CREATE INDEX IF NOT EXISTS idx_custom_forex_pairs_active ON custom_forex_pairs(is_active);
+CREATE INDEX IF NOT EXISTS idx_custom_forex_trades_user ON custom_forex_trades(user_id);
+CREATE INDEX IF NOT EXISTS idx_custom_forex_trades_forex ON custom_forex_trades(forex_id);
+CREATE INDEX IF NOT EXISTS idx_custom_forex_trades_status ON custom_forex_trades(status);
+CREATE INDEX IF NOT EXISTS idx_price_history_forex_time ON custom_forex_price_history(forex_id, timestamp DESC);
 
 -- RLS Policies
 ALTER TABLE custom_forex_pairs ENABLE ROW LEVEL SECURITY;
