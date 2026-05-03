@@ -150,7 +150,7 @@ CREATE OR REPLACE FUNCTION is_custom_forex_open(forex_uuid UUID)
 RETURNS BOOLEAN AS $$
 DECLARE
   forex_record RECORD;
-  current_time TIME;
+  now_time TIME;
   current_day INTEGER;
 BEGIN
   SELECT * INTO forex_record FROM custom_forex_pairs WHERE id = forex_uuid;
@@ -159,7 +159,7 @@ BEGIN
     RETURN false;
   END IF;
   
-  current_time := CURRENT_TIME;
+  now_time := CURRENT_TIME;
   current_day := EXTRACT(ISODOW FROM CURRENT_DATE); -- 1=Mon, 7=Sun
   
   -- Check if today is trading day
@@ -168,7 +168,7 @@ BEGIN
   END IF;
   
   -- Check if within trading hours
-  IF current_time < forex_record.market_open_time OR current_time > forex_record.market_close_time THEN
+  IF now_time < forex_record.market_open_time OR now_time > forex_record.market_close_time THEN
     RETURN false;
   END IF;
   
