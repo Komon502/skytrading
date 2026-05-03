@@ -85,39 +85,39 @@ ALTER TABLE custom_forex_trades ENABLE ROW LEVEL SECURITY;
 ALTER TABLE custom_forex_price_history ENABLE ROW LEVEL SECURITY;
 
 -- Everyone can view active forex pairs
-CREATE POLICY IF NOT EXISTS "Anyone can view active forex pairs" ON custom_forex_pairs
+CREATE POLICY "Anyone can view active forex pairs" ON custom_forex_pairs
   FOR SELECT USING (is_active = true);
 
 -- Only admin can manage forex pairs (using email check to avoid recursion)
-CREATE POLICY IF NOT EXISTS "Only admin can insert forex" ON custom_forex_pairs
+CREATE POLICY "Only admin can insert forex" ON custom_forex_pairs
   FOR INSERT WITH CHECK (
     auth.jwt() ->> 'email' IN ('admin@skytrading.com', 'komon502@gmail.com', 'dewstp128@gmail.com')
   );
 
-CREATE POLICY IF NOT EXISTS "Only admin can update forex" ON custom_forex_pairs
+CREATE POLICY "Only admin can update forex" ON custom_forex_pairs
   FOR UPDATE USING (
     auth.jwt() ->> 'email' IN ('admin@skytrading.com', 'komon502@gmail.com', 'dewstp128@gmail.com')
   );
 
-CREATE POLICY IF NOT EXISTS "Only admin can delete forex" ON custom_forex_pairs
+CREATE POLICY "Only admin can delete forex" ON custom_forex_pairs
   FOR DELETE USING (
     auth.jwt() ->> 'email' IN ('admin@skytrading.com', 'komon502@gmail.com', 'dewstp128@gmail.com')
   );
 
 -- Users can view their own trades
-CREATE POLICY IF NOT EXISTS "Users can view own trades" ON custom_forex_trades
+CREATE POLICY "Users can view own trades" ON custom_forex_trades
   FOR SELECT USING (auth.uid() = user_id);
 
 -- Users can create their own trades
-CREATE POLICY IF NOT EXISTS "Users can create own trades" ON custom_forex_trades
+CREATE POLICY "Users can create own trades" ON custom_forex_trades
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Users can update (close) their own open trades
-CREATE POLICY IF NOT EXISTS "Users can update own trades" ON custom_forex_trades
+CREATE POLICY "Users can update own trades" ON custom_forex_trades
   FOR UPDATE USING (auth.uid() = user_id);
 
 -- Price history readable by all
-CREATE POLICY IF NOT EXISTS "Anyone can view price history" ON custom_forex_price_history
+CREATE POLICY "Anyone can view price history" ON custom_forex_price_history
   FOR SELECT USING (true);
 
 -- Functions
