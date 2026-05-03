@@ -88,15 +88,21 @@ ALTER TABLE custom_forex_price_history ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Anyone can view active forex pairs" ON custom_forex_pairs
   FOR SELECT USING (is_active = true);
 
--- Only admin can manage forex pairs
+-- Only admin can manage forex pairs (using email check to avoid recursion)
 CREATE POLICY "Only admin can insert forex" ON custom_forex_pairs
-  FOR INSERT WITH CHECK (auth.uid() IN (SELECT user_id FROM admin_users));
+  FOR INSERT WITH CHECK (
+    auth.jwt() ->> 'email' IN ('admin@skytrading.com', 'komon502@gmail.com', 'dewstp128@gmail.com')
+  );
 
 CREATE POLICY "Only admin can update forex" ON custom_forex_pairs
-  FOR UPDATE USING (auth.uid() IN (SELECT user_id FROM admin_users));
+  FOR UPDATE USING (
+    auth.jwt() ->> 'email' IN ('admin@skytrading.com', 'komon502@gmail.com', 'dewstp128@gmail.com')
+  );
 
 CREATE POLICY "Only admin can delete forex" ON custom_forex_pairs
-  FOR DELETE USING (auth.uid() IN (SELECT user_id FROM admin_users));
+  FOR DELETE USING (
+    auth.jwt() ->> 'email' IN ('admin@skytrading.com', 'komon502@gmail.com', 'dewstp128@gmail.com')
+  );
 
 -- Users can view their own trades
 CREATE POLICY "Users can view own trades" ON custom_forex_trades
