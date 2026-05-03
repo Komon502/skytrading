@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import dynamic from 'next/dynamic'
 import { supabase } from '../lib/supabase'
-import { US_STOCKS, CRYPTOS, FOREX_PAIRS, getStockQuote, getCryptoPrice, formatPrice, formatTHB } from '../lib/market'
+import { US_STOCKS, CRYPTOS, FOREX_PAIRS, getStockQuote, getCryptoPrice, getForexPrice, formatPrice, formatTHB } from '../lib/market'
 import { isUSStockMarketOpen, formatCountdown } from '../lib/market-hours'
 import Navbar from '../components/Navbar'
 import {
@@ -121,8 +121,10 @@ export default function TradePage() {
       let data
       if (type === 'crypto') {
         data = await getCryptoPrice(sym)
+      } else if (type === 'forex') {
+        data = await getForexPrice(sym)
       } else {
-        // Stocks and forex use same API
+        // Stocks only
         data = await getStockQuote(sym)
       }
       setPrice(data.price)
