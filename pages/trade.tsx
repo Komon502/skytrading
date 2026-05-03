@@ -355,7 +355,7 @@ export default function TradePage() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-lg font-bold text-white">{selectedSymbol}</span>
-                {changePct !== 0 && (
+                {changePct !== null && changePct !== undefined && changePct !== 0 && (
                   <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
                     changePct >= 0 ? 'bg-green-400/10 text-green-400' : 'bg-red-400/10 text-red-400'
                   }`}>
