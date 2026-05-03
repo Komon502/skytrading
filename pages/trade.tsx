@@ -351,12 +351,12 @@ export default function TradePage() {
             </select>
           </div>
 
-          {/* Chart header */}
-          <div className="px-4 py-3 border-b flex items-center gap-4"
+          {/* Chart header - Mobile optimized */}
+          <div className="px-3 py-2 md:px-4 md:py-3 border-b flex items-center gap-3 md:gap-4"
             style={{ borderColor: 'rgba(59,127,212,0.12)' }}>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-lg font-bold text-white">{selectedSymbol}</span>
+                <span className="text-base md:text-lg font-bold text-white">{selectedSymbol}</span>
                 {changePct !== null && changePct !== undefined && changePct !== 0 && (
                   <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
                     changePct >= 0 ? 'bg-green-400/10 text-green-400' : 'bg-red-400/10 text-red-400'
@@ -367,7 +367,7 @@ export default function TradePage() {
               </div>
               {price !== null && (
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl font-mono font-bold text-white">
+                  <span className="text-xl md:text-2xl font-mono font-bold text-white">
                     ฿{formatPrice(price, 2)}
                   </span>
                   {change !== 0 && (
@@ -386,7 +386,7 @@ export default function TradePage() {
 
           {/* Chart */}
           <div className="flex-1 min-h-0 relative">
-            <TradingChart symbol={selectedSymbol} isCrypto={assetType === 'crypto'} isForex={assetType === 'forex'} height={320}/>
+            <TradingChart symbol={selectedSymbol} isCrypto={assetType === 'crypto'} isForex={assetType === 'forex'} height={280}/>
 
             {/* Improved Order Panel */}
             <div className="border-t" style={{ borderColor: 'rgba(59,127,212,0.12)', background: 'rgba(6,13,26,0.98)' }}>
@@ -429,11 +429,11 @@ export default function TradePage() {
                 </div>
               </div>
 
-              {/* Order Input */}
-              <div className="px-4 pb-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="flex-1">
-                    <label className="text-xs text-gray-400 mb-2 block flex items-center justify-between">
+              {/* Order Input - Mobile optimized */}
+              <div className="px-3 md:px-4 pb-3 md:pb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 md:gap-3">
+                  <div className="flex-1 min-w-0">
+                    <label className="text-xs text-gray-400 mb-1.5 md:mb-2 block flex items-center justify-between">
                       <span className="flex items-center gap-1">
                         <Wallet size={12}/> จำนวน ({selectedSymbol})
                       </span>
@@ -449,7 +449,7 @@ export default function TradePage() {
                     <div className="relative">
                       <input
                         type="number"
-                        className="input-sky text-center font-mono text-white"
+                        className="input-sky text-center font-mono text-white py-2.5 md:py-2"
                         placeholder="0.00"
                         step="0.01"
                         min="0"
@@ -458,9 +458,9 @@ export default function TradePage() {
                         onChange={e => setQuantity(e.target.value)}
                       />
                     </div>
-                    {/* Quick amount buttons - Buy: ฿ amounts, Sell: % of holdings */}
+                    {/* Quick amount buttons - Mobile: 2 columns */}
                     {orderType === 'buy' ? (
-                      <div className="flex gap-1 mt-2">
+                      <div className="grid grid-cols-2 sm:flex gap-1 mt-2">
                         {['1000', '5000', '10000', '50000'].map((amount) => (
                           <button
                             key={amount}
@@ -471,7 +471,7 @@ export default function TradePage() {
                               }
                             }}
                             disabled={!price}
-                            className="flex-1 py-1.5 rounded text-xs font-medium transition-all bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 disabled:opacity-50"
+                            className="py-2 md:py-1.5 rounded text-xs font-medium transition-all bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 disabled:opacity-50 active:scale-95"
                           >
                             ฿{(parseInt(amount)/1000).toFixed(0)}K
                           </button>
@@ -479,7 +479,7 @@ export default function TradePage() {
                       </div>
                     ) : (
                       ownedQuantity > 0 && (
-                        <div className="flex gap-1 mt-2">
+                        <div className="grid grid-cols-4 gap-1 mt-2">
                           {[
                             { pct: 25, label: '25%' },
                             { pct: 50, label: '50%' },
@@ -489,7 +489,7 @@ export default function TradePage() {
                             <button
                               key={pct}
                               onClick={() => setQuantity((ownedQuantity * pct / 100).toFixed(4))}
-                              className="flex-1 py-1.5 rounded text-xs font-medium transition-all bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20"
+                              className="py-2 md:py-1.5 rounded text-xs font-medium transition-all bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 active:scale-95"
                             >
                               {label}
                             </button>
