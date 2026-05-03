@@ -255,7 +255,7 @@ export default function AdminTrades() {
                     </span>
                   </td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         )}
