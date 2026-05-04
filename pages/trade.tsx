@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 
 const TradingChart = dynamic(() => import('../components/TradingChart'), { ssr: false })
+const CustomForexChart = dynamic(() => import('../components/CustomForexChart'), { ssr: false })
 
 type OrderType = 'buy' | 'sell'
 type AssetType = 'stocks' | 'crypto' | 'forex'
@@ -427,20 +428,9 @@ export default function TradePage() {
 
           {/* Chart */}
           <div className="flex-1 min-h-0 relative">
-            {/* Check if custom forex - don't show TradingView chart */}
+            {/* Check if custom forex - show CustomForexChart */}
             {assetType === 'forex' && customForexList.find(f => f.symbol === selectedSymbol) ? (
-              <div className="h-[280px] bg-[#060d1a] rounded-lg flex flex-col items-center justify-center p-6">
-                <div className="text-center">
-                  <p className="text-lg font-bold text-white mb-2">{selectedSymbol}</p>
-                  <p className="text-sm text-gray-400 mb-4">Custom Forex Pair</p>
-                  {price !== null && (
-                    <div className="bg-white/5 rounded-lg px-6 py-4">
-                      <p className="text-3xl font-mono font-bold text-white">฿{formatPrice(price, 4)}</p>
-                      <p className="text-xs text-gray-500 mt-1">กำหนดโดยผู้ดูแลระบบ</p>
-                    </div>
-                  )}
-                </div>
-              </div>
+              <CustomForexChart symbol={selectedSymbol} height={280} />
             ) : (
               <TradingChart symbol={selectedSymbol} isCrypto={assetType === 'crypto'} isForex={assetType === 'forex'} height={280} isMobile={isMobile}/>
             )}
