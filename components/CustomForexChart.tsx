@@ -1,30 +1,61 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { Activity } from 'lucide-react'
 
 interface CustomForexChartProps {
   symbol: string
   height?: number
+  isMarketOpen?: boolean
 }
 
-interface PricePoint {
+interface CandleData {
   timestamp: string
-  price: number
+  open: number
+  high: number
+  low: number
+  close: number
 }
 
-export default function CustomForexChart({ symbol, height = 280 }: CustomForexChartProps) {
+export default function CustomForexChart({ symbol, height = 280, isMarketOpen = true }: CustomForexChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [priceHistory, setPriceHistory] = useState<PricePoint[]>([])
+  const [candles, setCandles] = useState<CandleData[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentPrice, setCurrentPrice] = useState<number | null>(null)
+  const [priceChange, setPriceChange] = useState<{value: number, percent: number} | null>(null)
+  const subscriptionRef = useRef<any>(null)
+
+  // Generate OHLC candles from price points
+  const generateCandles = (pricePoints: {price: number, timestamp: string}[]): CandleData[] => {
+    if (pricePoints.length === 0) return []
+    
+    const candles: CandleData[] = []
+    const interval = 5 // 5 minute candles
+    
+    for (let i = 0; i < pricePoints.length - interval; i += interval) {
+      const slice = pricePoints.slice(i, i + interval)
+      const prices = slice.map(p => p.price)
+      
+      candles.push({
+        timestamp: slice[Math.floor(slice.length / 2)].timestamp,
+        open: prices[0],
+        high: Math.max(...prices),
+        low: Math.min(...prices),
+        close: prices[prices.length - 1]
+      })
+    }
+    
+    return candles
+  }
 
   // Fetch price history
   useEffect(() => {
     const fetchHistory = async () => {
       setLoading(true)
       
-      // Get forex ID first
+      // Get forex data
       const { data: forex } = await supabase
         .from('custom_forex_pairs')
-        .select('id')
+        .select('id, current_price, base_price, price_volatility')
         .eq('symbol', symbol)
         .single()
       
@@ -33,191 +64,252 @@ export default function CustomForexChart({ symbol, height = 280 }: CustomForexCh
         return
       }
       
-      // Get last 100 price points
+      setCurrentPrice(forex.current_price)
+      const baseChange = ((forex.current_price - forex.base_price) / forex.base_price) * 100
+      setPriceChange({
+        value: forex.current_price - forex.base_price,
+        percent: baseChange
+      })
+      
+      // Get last 200 price points for more candles
       const { data } = await supabase
         .from('custom_forex_price_history')
         .select('price, timestamp')
         .eq('forex_id', forex.id)
         .order('timestamp', { ascending: true })
-        .limit(100)
+        .limit(200)
       
-      if (data && data.length > 0) {
-        setPriceHistory(data)
+      if (data && data.length > 10) {
+        const candleData = generateCandles(data)
+        setCandles(candleData)
       } else {
-        // If no history, create some mock data based on current price
-        const { data: currentData } = await supabase
-          .from('custom_forex_pairs')
-          .select('current_price, base_price, price_volatility')
-          .eq('symbol', symbol)
-          .single()
+        // Generate realistic mock candles
+        const mockCandles: CandleData[] = []
+        const now = new Date()
+        let lastClose = forex.current_price
         
-        if (currentData) {
-          const mockData: PricePoint[] = []
-          const now = new Date()
-          for (let i = 99; i >= 0; i--) {
-            const time = new Date(now.getTime() - i * 60000) // 1 minute intervals
-            const randomMove = (Math.random() - 0.5) * 2 * currentData.price_volatility * currentData.current_price
-            mockData.push({
-              timestamp: time.toISOString(),
-              price: currentData.current_price + randomMove * (i / 50) // Trend towards current
-            })
-          }
-          setPriceHistory(mockData)
+        for (let i = 39; i >= 0; i--) {
+          const time = new Date(now.getTime() - i * 300000) // 5 minute intervals
+          const volatility = forex.price_volatility * lastClose
+          const trend = (i / 40) * (forex.current_price - forex.base_price) * 0.5
+          
+          const open = lastClose
+          const close = open + (Math.random() - 0.5) * 2 * volatility + trend * 0.1
+          const high = Math.max(open, close) + Math.random() * volatility * 0.5
+          const low = Math.min(open, close) - Math.random() * volatility * 0.5
+          
+          mockCandles.push({
+            timestamp: time.toISOString(),
+            open,
+            high,
+            low,
+            close
+          })
+          lastClose = close
         }
+        setCandles(mockCandles)
       }
       setLoading(false)
     }
     
     fetchHistory()
     
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchHistory, 30000)
-    return () => clearInterval(interval)
+    // Set up realtime subscription
+    const channel = supabase
+      .channel(`forex-${symbol}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'custom_forex_pairs',
+        filter: `symbol=eq.${symbol}`
+      }, (payload) => {
+        if (payload.new && 'current_price' in payload.new) {
+          setCurrentPrice(payload.new.current_price as number)
+          // Add new candle point
+          const newCandle: CandleData = {
+            timestamp: new Date().toISOString(),
+            open: payload.new.current_price as number,
+            high: payload.new.current_price as number,
+            low: payload.new.current_price as number,
+            close: payload.new.current_price as number
+          }
+          setCandles(prev => [...prev.slice(-49), newCandle])
+        }
+      })
+      .subscribe()
+    
+    subscriptionRef.current = channel
+    
+    return () => {
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current)
+      }
+    }
   }, [symbol])
 
-  // Draw chart
+  // Draw candlestick chart
   useEffect(() => {
-    if (!canvasRef.current || priceHistory.length === 0) return
+    if (!canvasRef.current || candles.length === 0) return
     
     const canvas = canvasRef.current
     const ctx = canvas.getContext('2d')
     if (!ctx) return
     
-    // Set canvas size
-    canvas.width = canvas.offsetWidth * 2 // Retina display
-    canvas.height = height * 2
-    canvas.style.width = canvas.offsetWidth + 'px'
-    canvas.style.height = height + 'px'
-    
-    // Scale for retina
-    ctx.scale(2, 2)
+    // Set canvas size (retina)
+    const dpr = window.devicePixelRatio || 2
+    canvas.width = canvas.offsetWidth * dpr
+    canvas.height = height * dpr
+    ctx.scale(dpr, dpr)
     
     const width = canvas.offsetWidth
     const chartHeight = height
+    const padding = { top: 30, bottom: 25, left: 10, right: 60 }
+    const chartW = width - padding.left - padding.right
+    const chartH = chartHeight - padding.top - padding.bottom
     
     // Clear
-    ctx.fillStyle = '#060d1a'
+    ctx.fillStyle = '#0b1121'
     ctx.fillRect(0, 0, width, chartHeight)
     
-    // Calculate min/max for scaling
-    const prices = priceHistory.map(p => p.price)
-    const minPrice = Math.min(...prices) * 0.999
-    const maxPrice = Math.max(...prices) * 1.001
+    // Calculate min/max
+    const allPrices = candles.flatMap(c => [c.high, c.low])
+    const minPrice = Math.min(...allPrices) * 0.998
+    const maxPrice = Math.max(...allPrices) * 1.002
     const priceRange = maxPrice - minPrice
     
+    const getY = (price: number) => padding.top + chartH - ((price - minPrice) / priceRange) * chartH
+    const getX = (index: number) => padding.left + (index / (candles.length - 1)) * chartW
+    
     // Draw grid
-    ctx.strokeStyle = 'rgba(59, 127, 212, 0.08)'
+    ctx.strokeStyle = 'rgba(59, 127, 212, 0.06)'
     ctx.lineWidth = 1
     
     // Horizontal grid lines
-    for (let i = 0; i <= 5; i++) {
-      const y = (chartHeight / 5) * i
+    for (let i = 0; i <= 4; i++) {
+      const y = padding.top + (chartH / 4) * i
       ctx.beginPath()
-      ctx.moveTo(0, y)
-      ctx.lineTo(width, y)
+      ctx.moveTo(padding.left, y)
+      ctx.lineTo(width - padding.right, y)
       ctx.stroke()
     }
     
-    // Vertical grid lines
-    for (let i = 0; i <= 5; i++) {
-      const x = (width / 5) * i
-      ctx.beginPath()
-      ctx.moveTo(x, 0)
-      ctx.lineTo(x, chartHeight)
-      ctx.stroke()
-    }
+    // Draw candles
+    const candleWidth = Math.max(2, (chartW / candles.length) * 0.6)
     
-    // Draw price line
-    ctx.strokeStyle = '#0ea5e9'
-    ctx.lineWidth = 2
-    ctx.beginPath()
-    
-    priceHistory.forEach((point, index) => {
-      const x = (index / (priceHistory.length - 1)) * width
-      const y = chartHeight - ((point.price - minPrice) / priceRange) * chartHeight
+    candles.forEach((candle, i) => {
+      const x = getX(i)
+      const yOpen = getY(candle.open)
+      const yClose = getY(candle.close)
+      const yHigh = getY(candle.high)
+      const yLow = getY(candle.low)
       
-      if (index === 0) {
-        ctx.moveTo(x, y)
-      } else {
-        ctx.lineTo(x, y)
-      }
+      const isGreen = candle.close >= candle.open
+      ctx.fillStyle = isGreen ? '#10b981' : '#ef4444'
+      ctx.strokeStyle = isGreen ? '#10b981' : '#ef4444'
+      
+      // Draw wick
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.moveTo(x, yHigh)
+      ctx.lineTo(x, yLow)
+      ctx.stroke()
+      
+      // Draw body
+      const bodyTop = Math.min(yOpen, yClose)
+      const bodyHeight = Math.max(1, Math.abs(yClose - yOpen))
+      ctx.fillRect(x - candleWidth/2, bodyTop, candleWidth, bodyHeight)
     })
     
-    ctx.stroke()
+    // Draw current price line
+    if (currentPrice) {
+      const y = getY(currentPrice)
+      ctx.strokeStyle = '#0ea5e9'
+      ctx.lineWidth = 1
+      ctx.setLineDash([5, 5])
+      ctx.beginPath()
+      ctx.moveTo(padding.left, y)
+      ctx.lineTo(width - padding.right, y)
+      ctx.stroke()
+      ctx.setLineDash([])
+    }
     
-    // Draw gradient fill under line
-    ctx.beginPath()
-    priceHistory.forEach((point, index) => {
-      const x = (index / (priceHistory.length - 1)) * width
-      const y = chartHeight - ((point.price - minPrice) / priceRange) * chartHeight
-      if (index === 0) ctx.moveTo(x, y)
-      else ctx.lineTo(x, y)
-    })
-    ctx.lineTo(width, chartHeight)
-    ctx.lineTo(0, chartHeight)
-    ctx.closePath()
+    // Draw price scale (right side)
+    ctx.fillStyle = '#64748b'
+    ctx.font = '10px monospace'
+    ctx.textAlign = 'left'
     
-    const gradient = ctx.createLinearGradient(0, 0, 0, chartHeight)
-    gradient.addColorStop(0, 'rgba(14, 165, 233, 0.2)')
-    gradient.addColorStop(1, 'rgba(14, 165, 233, 0)')
-    ctx.fillStyle = gradient
-    ctx.fill()
-    
-    // Draw current price dot
-    const lastPrice = priceHistory[priceHistory.length - 1].price
-    const lastY = chartHeight - ((lastPrice - minPrice) / priceRange) * chartHeight
-    
-    ctx.fillStyle = '#0ea5e9'
-    ctx.beginPath()
-    ctx.arc(width - 10, lastY, 5, 0, Math.PI * 2)
-    ctx.fill()
-    
-    // Draw price labels
-    ctx.fillStyle = '#94a3b8'
-    ctx.font = '11px monospace'
-    ctx.textAlign = 'right'
-    
-    // Top price
-    ctx.fillText(maxPrice.toFixed(4), width - 10, 15)
-    // Bottom price
-    ctx.fillText(minPrice.toFixed(4), width - 10, chartHeight - 5)
+    for (let i = 0; i <= 4; i++) {
+      const price = minPrice + (priceRange / 4) * i
+      const y = padding.top + chartH - (chartH / 4) * i
+      ctx.fillText(price.toFixed(4), width - padding.right + 5, y + 3)
+    }
     
     // Draw time labels
     ctx.textAlign = 'center'
-    const timeLabels = [0, Math.floor(priceHistory.length / 2), priceHistory.length - 1]
-    timeLabels.forEach(index => {
-      if (priceHistory[index]) {
-        const x = (index / (priceHistory.length - 1)) * width
-        const time = new Date(priceHistory[index].timestamp)
+    const timeIndices = [0, Math.floor(candles.length / 2), candles.length - 1]
+    timeIndices.forEach(i => {
+      if (candles[i]) {
+        const x = getX(i)
+        const time = new Date(candles[i].timestamp)
         const label = `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}`
-        ctx.fillText(label, x, chartHeight - 5)
+        ctx.fillText(label, x, chartHeight - 8)
       }
     })
-  }, [priceHistory, height])
+  }, [candles, height, currentPrice])
 
   if (loading) {
     return (
-      <div className="h-[280px] bg-[#060d1a] rounded-lg flex items-center justify-center">
-        <p className="text-gray-400">กำลังโหลดกราฟ...</p>
+      <div className="h-[280px] bg-[#0b1121] rounded-lg flex flex-col items-center justify-center gap-3 border border-blue-500/20">
+        <Activity size={32} className="text-blue-400 animate-pulse" />
+        <p className="text-gray-400 text-sm">กำลังโหลดกราฟ...</p>
       </div>
     )
   }
 
+  const isPositive = (priceChange?.value || 0) >= 0
+  const changeColor = isPositive ? 'text-green-400' : 'text-red-400'
+  const changeBg = isPositive ? 'bg-green-400/10' : 'bg-red-400/10'
+
   return (
-    <div className="relative h-[280px] bg-[#060d1a] rounded-lg overflow-hidden">
+    <div className="relative h-[280px] bg-[#0b1121] rounded-lg overflow-hidden border border-blue-500/20">
+      {/* Header with price info */}
+      <div className="absolute top-0 left-0 right-0 px-3 py-2 flex items-center justify-between bg-gradient-to-b from-[#0b1121] to-transparent z-10">
+        <div className="flex items-center gap-3">
+          <span className="text-white font-bold text-sm">{symbol}</span>
+          {!isMarketOpen && (
+            <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-[10px] font-medium rounded">
+              ตลาดปิด
+            </span>
+          )}
+        </div>
+        {currentPrice && priceChange && (
+          <div className="flex items-center gap-2">
+            <span className="text-white font-mono font-bold text-sm">
+              ฿{currentPrice.toFixed(4)}
+            </span>
+            <span className={`px-2 py-0.5 ${changeBg} ${changeColor} text-[10px] font-medium rounded`}>
+              {isPositive ? '+' : ''}{priceChange.percent.toFixed(2)}%
+            </span>
+          </div>
+        )}
+      </div>
+      
       <canvas
         ref={canvasRef}
         className="w-full h-full"
         style={{ width: '100%', height: '280px' }}
       />
-      {priceHistory.length > 0 && (
-        <div className="absolute top-2 left-2 text-xs">
-          <span className="text-gray-400">ราคาล่าสุด: </span>
-          <span className="text-white font-mono font-bold">
-            ฿{priceHistory[priceHistory.length - 1].price.toFixed(4)}
-          </span>
-        </div>
-      )}
+      
+      {/* Legend */}
+      <div className="absolute bottom-1 right-2 flex items-center gap-3 text-[10px] text-gray-500">
+        <span className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-sm bg-green-500"></span> ขึ้น
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-sm bg-red-500"></span> ลง
+        </span>
+        <span>5นาที</span>
+      </div>
     </div>
   )
 }

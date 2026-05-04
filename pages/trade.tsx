@@ -430,7 +430,7 @@ export default function TradePage() {
           <div className="flex-1 min-h-0 relative">
             {/* Check if custom forex - show CustomForexChart */}
             {assetType === 'forex' && customForexList.find(f => f.symbol === selectedSymbol) ? (
-              <CustomForexChart symbol={selectedSymbol} height={280} />
+              <CustomForexChart symbol={selectedSymbol} height={280} isMarketOpen={true} />
             ) : (
               <TradingChart symbol={selectedSymbol} isCrypto={assetType === 'crypto'} isForex={assetType === 'forex'} height={280} isMobile={isMobile}/>
             )}

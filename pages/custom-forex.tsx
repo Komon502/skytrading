@@ -308,7 +308,7 @@ export default function CustomForexPage() {
                 </div>
 
                 {/* Chart */}
-                <CustomForexChart symbol={selectedForex.symbol} height={280} />
+                <CustomForexChart symbol={selectedForex.symbol} height={280} isMarketOpen={selectedForex.is_market_open} />
 
                 {/* Order Panel */}
                 <div className="glass rounded-xl p-6">
