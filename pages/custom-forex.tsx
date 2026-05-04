@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
+import dynamic from 'next/dynamic'
 import { supabase } from '../lib/supabase'
 import { 
   getCustomForexPairs, getCustomForexPrice, placeCustomForexTrade, 
   closeCustomForexTrade, CustomForexPair, formatPrice 
 } from '../lib/market'
 import Navbar from '../components/Navbar'
+
+const CustomForexChart = dynamic(() => import('../components/CustomForexChart'), { ssr: false })
 import { 
   TrendingUp, TrendingDown, Loader2, ArrowUpCircle, ArrowDownCircle,
   Clock, DollarSign, BarChart3, History, X, RefreshCw
@@ -290,6 +293,9 @@ export default function CustomForexPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Chart */}
+                <CustomForexChart symbol={selectedForex.symbol} height={280} />
 
                 {/* Order Panel */}
                 <div className="glass rounded-xl p-6">
