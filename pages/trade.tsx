@@ -427,7 +427,23 @@ export default function TradePage() {
 
           {/* Chart */}
           <div className="flex-1 min-h-0 relative">
-            <TradingChart symbol={selectedSymbol} isCrypto={assetType === 'crypto'} isForex={assetType === 'forex'} height={280} isMobile={isMobile}/>
+            {/* Check if custom forex - don't show TradingView chart */}
+            {assetType === 'forex' && customForexList.find(f => f.symbol === selectedSymbol) ? (
+              <div className="h-[280px] bg-[#060d1a] rounded-lg flex flex-col items-center justify-center p-6">
+                <div className="text-center">
+                  <p className="text-lg font-bold text-white mb-2">{selectedSymbol}</p>
+                  <p className="text-sm text-gray-400 mb-4">Custom Forex Pair</p>
+                  {price !== null && (
+                    <div className="bg-white/5 rounded-lg px-6 py-4">
+                      <p className="text-3xl font-mono font-bold text-white">฿{formatPrice(price, 4)}</p>
+                      <p className="text-xs text-gray-500 mt-1">กำหนดโดยผู้ดูแลระบบ</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <TradingChart symbol={selectedSymbol} isCrypto={assetType === 'crypto'} isForex={assetType === 'forex'} height={280} isMobile={isMobile}/>
+            )}
 
             {/* Improved Order Panel */}
             <div className="border-t" style={{ borderColor: 'rgba(59,127,212,0.12)', background: 'rgba(6,13,26,0.98)' }}>
