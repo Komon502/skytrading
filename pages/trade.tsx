@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import dynamic from 'next/dynamic'
 import { supabase } from '../lib/supabase'
-import { US_STOCKS, CRYPTOS, FOREX_PAIRS, getStockQuote, getCryptoPrice, getForexPrice, formatPrice, formatTHB } from '../lib/market'
+import { US_STOCKS, CRYPTOS, FOREX_PAIRS, getStockQuote, getCryptoPrice, getForexPrice, getCustomForexPairs, formatPrice, formatTHB } from '../lib/market'
 import { isUSStockMarketOpen, formatCountdown } from '../lib/market-hours'
 import Navbar from '../components/Navbar'
 import {
@@ -44,6 +44,9 @@ export default function TradePage() {
 
   // Positions
   const [positions, setPositions] = useState<any[]>([])
+  
+  // Custom Forex (from admin)
+  const [customForexList, setCustomForexList] = useState<{symbol: string, name: string}[]>([])
   
   // Mobile detection
   const [isMobile, setIsMobile] = useState(false)
@@ -119,10 +122,17 @@ export default function TradePage() {
   const getCurrentAssets = useCallback(() => {
     switch (assetType) {
       case 'crypto': return CRYPTOS
-      case 'forex': return FOREX_PAIRS
+      case 'forex': return [...FOREX_PAIRS, ...customForexList]
       default: return US_STOCKS
     }
-  }, [assetType])
+  }, [assetType, customForexList])
+
+  // Fetch custom forex pairs on mount
+  useEffect(() => {
+    getCustomForexPairs().then(pairs => {
+      setCustomForexList(pairs.map(p => ({ symbol: p.symbol, name: p.name })))
+    })
+  }, [])
 
   const fetchPrice = useCallback(async (sym: string, type: AssetType = assetType) => {
     setPriceLoading(true)
@@ -131,7 +141,29 @@ export default function TradePage() {
       if (type === 'crypto') {
         data = await getCryptoPrice(sym)
       } else if (type === 'forex') {
-        data = await getForexPrice(sym)
+        // Check if it's a custom forex pair first
+        const customForex = customForexList.find(f => f.symbol === sym)
+        if (customForex) {
+          // For custom forex, get price from supabase
+          const { data: priceData } = await supabase
+            .from('custom_forex_pairs')
+            .select('current_price, price_volatility')
+            .eq('symbol', sym)
+            .single()
+          if (priceData) {
+            const change = (Math.random() - 0.5) * 2 * priceData.price_volatility * priceData.current_price
+            const changePercent = (change / priceData.current_price) * 100
+            data = {
+              price: priceData.current_price,
+              change,
+              changePercent
+            }
+          } else {
+            throw new Error('Custom forex price not found')
+          }
+        } else {
+          data = await getForexPrice(sym)
+        }
       } else {
         // Stocks only
         data = await getStockQuote(sym)
@@ -141,7 +173,7 @@ export default function TradePage() {
       setChangePct(data.changePercent)
     } catch { /* silent fail */ }
     setPriceLoading(false)
-  }, [assetType])
+  }, [assetType, customForexList])
 
   useEffect(() => {
     fetchPrice(selectedSymbol, assetType)
