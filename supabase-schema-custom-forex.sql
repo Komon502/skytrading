@@ -139,7 +139,7 @@ CREATE POLICY "Anyone can view price history" ON custom_forex_price_history
 
 -- Functions
 
--- Function to update forex price (simulated movement)
+-- Function to update forex price (simulated movement) and check market hours
 CREATE OR REPLACE FUNCTION update_custom_forex_price(forex_uuid UUID)
 RETURNS DECIMAL AS $$
 DECLARE
@@ -147,17 +147,37 @@ DECLARE
   volatility DECIMAL(5, 4);
   new_price DECIMAL(20, 8);
   random_factor DECIMAL(10, 8);
+  market_open TIME;
+  market_close TIME;
+  trading_days INTEGER[];
+  now_time_val TIME := CURRENT_TIME;
+  current_day_val INTEGER := EXTRACT(ISODOW FROM CURRENT_DATE);
+  should_be_open BOOLEAN := true;
 BEGIN
-  SELECT current_price, price_volatility INTO current_pr, volatility
+  SELECT current_price, price_volatility, market_open_time, market_close_time, trading_days 
+  INTO current_pr, volatility, market_open, market_close, trading_days
   FROM custom_forex_pairs WHERE id = forex_uuid;
   
   -- Generate random movement (-1 to +1) * volatility
   random_factor := (random() * 2 - 1) * volatility;
   new_price := current_pr * (1 + random_factor);
   
-  -- Update price
+  -- Check if market should be open based on admin settings
+  -- Check trading days
+  IF NOT (current_day_val = ANY(trading_days)) THEN
+    should_be_open := false;
+  END IF;
+  
+  -- Check trading hours
+  IF now_time_val < market_open OR now_time_val > market_close THEN
+    should_be_open := false;
+  END IF;
+  
+  -- Update price and market status
   UPDATE custom_forex_pairs 
-  SET current_price = new_price, updated_at = NOW()
+  SET current_price = new_price, 
+      updated_at = NOW(),
+      is_market_open = should_be_open
   WHERE id = forex_uuid;
   
   -- Record history
