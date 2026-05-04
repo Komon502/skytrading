@@ -278,17 +278,30 @@ export default function CustomForexPage() {
                   )}
 
                   {/* Market Status */}
-                  <div className="flex items-center gap-4 text-sm mb-4">
-                    <div className="flex items-center gap-2">
-                      <Clock size={16} className={selectedForex.is_market_open ? 'text-green-400' : 'text-red-400'} />
-                      <span className={selectedForex.is_market_open ? 'text-green-400' : 'text-red-400'}>
-                        ตลาด{selectedForex.is_market_open ? 'เปิด' : 'ปิด'}
-                      </span>
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center gap-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Clock size={16} className={selectedForex.is_market_open ? 'text-green-400' : 'text-red-400'} />
+                        <span className={selectedForex.is_market_open ? 'text-green-400 font-medium' : 'text-red-400 font-medium'}>
+                          ตลาด{selectedForex.is_market_open ? 'เปิด' : 'ปิด'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <TrendingUp size={16} className="text-blue-400" />
+                        <span className="text-gray-400">
+                          โอกาสชนะ: {(selectedForex.player_win_rate * 100).toFixed(0)}%
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <TrendingUp size={16} className="text-blue-400" />
+                    {/* Admin market hours */}
+                    <div className="text-xs text-gray-500 bg-white/5 rounded-lg px-3 py-2">
+                      <span className="text-gray-400">เวลาตลาด (ตั้งค่าโดยแอดมิน): </span>
+                      <span className="text-gray-300 font-mono">
+                        {selectedForex.market_open_time?.slice(0, 5)} - {selectedForex.market_close_time?.slice(0, 5)}
+                      </span>
+                      <span className="mx-2 text-gray-600">|</span>
                       <span className="text-gray-400">
-                        โอกาสชนะ: {(selectedForex.player_win_rate * 100).toFixed(0)}%
+                        {selectedForex.trading_days?.map((d: number) => ['', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'][d]).join(', ')}
                       </span>
                     </div>
                   </div>

@@ -394,6 +394,9 @@ export interface CustomForexPair {
   is_demo_only: boolean
   is_market_open: boolean
   player_win_rate: number
+  market_open_time: string
+  market_close_time: string
+  trading_days: number[]
 }
 
 // Get all active custom forex pairs
