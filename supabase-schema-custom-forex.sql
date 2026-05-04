@@ -2,21 +2,20 @@
 -- Admin can create custom forex pairs with controlled pricing
 
 -- ============================================
--- CLEANUP: Drop existing policies first (if re-running)
--- Uncomment these lines if you get "policy already exists" errors:
+-- CLEANUP: Drop existing policies first (run this section first if re-running)
 -- ============================================
--- DROP POLICY IF EXISTS "Anyone can view active forex pairs" ON custom_forex_pairs;
--- DROP POLICY IF EXISTS "Only admin can insert forex" ON custom_forex_pairs;
--- DROP POLICY IF EXISTS "Only admin can update forex" ON custom_forex_pairs;
--- DROP POLICY IF EXISTS "Only admin can delete forex" ON custom_forex_pairs;
--- DROP POLICY IF EXISTS "Users can view own trades" ON custom_forex_trades;
--- DROP POLICY IF EXISTS "Users can create own trades" ON custom_forex_trades;
--- DROP POLICY IF EXISTS "Users can update own trades" ON custom_forex_trades;
--- DROP POLICY IF EXISTS "Anyone can view price history" ON custom_forex_price_history;
--- DROP POLICY IF EXISTS "Enable read access for all users" ON custom_forex_pairs;
--- DROP POLICY IF EXISTS "Enable insert for authenticated users only" ON custom_forex_pairs;
--- DROP POLICY IF EXISTS "Enable update for users based on email" ON custom_forex_pairs;
--- DROP POLICY IF EXISTS "Enable delete for users based on email" ON custom_forex_pairs;
+DROP POLICY IF EXISTS "Anyone can view active forex pairs" ON custom_forex_pairs;
+DROP POLICY IF EXISTS "Only admin can insert forex" ON custom_forex_pairs;
+DROP POLICY IF EXISTS "Only admin can update forex" ON custom_forex_pairs;
+DROP POLICY IF EXISTS "Only admin can delete forex" ON custom_forex_pairs;
+DROP POLICY IF EXISTS "Users can view own trades" ON custom_forex_trades;
+DROP POLICY IF EXISTS "Users can create own trades" ON custom_forex_trades;
+DROP POLICY IF EXISTS "Users can update own trades" ON custom_forex_trades;
+DROP POLICY IF EXISTS "Anyone can view price history" ON custom_forex_price_history;
+DROP POLICY IF EXISTS "Enable read access for all users" ON custom_forex_pairs;
+DROP POLICY IF EXISTS "Enable insert for authenticated users only" ON custom_forex_pairs;
+DROP POLICY IF EXISTS "Enable update for users based on email" ON custom_forex_pairs;
+DROP POLICY IF EXISTS "Enable delete for users based on email" ON custom_forex_pairs;
 
 -- Custom Forex Pairs table
 CREATE TABLE IF NOT EXISTS custom_forex_pairs (
