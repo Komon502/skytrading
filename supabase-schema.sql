@@ -3,8 +3,9 @@
 -- Run this in Supabase SQL Editor
 -- ============================================================
 
--- Enable UUID extension
+-- Enable UUID / crypto extensions
 create extension if not exists "uuid-ossp";
+create extension if not exists "pgcrypto";
 
 -- ============================================================
 -- WALLETS TABLE
@@ -157,6 +158,38 @@ create trigger on_trade_deleted
   for each row execute procedure public.update_holdings_on_trade();
 
 -- ============================================================
+-- MARKET RATES (FOREX & CRYPTO)
+-- Stores latest prices; public read access
+-- ============================================================
+create table if not exists public.forex_rates (
+  id uuid primary key default gen_random_uuid(),
+  pair text not null unique, -- e.g. "EUR/USD"
+  rate numeric(30,12) not null,
+  source text, -- data provider
+  ts timestamptz default now() not null
+);
+
+alter table public.forex_rates enable row level security;
+drop policy if exists "Allow public select forex_rates" on public.forex_rates;
+create policy "Allow public select forex_rates" on public.forex_rates for select using (true);
+
+create index if not exists forex_rates_pair_idx on public.forex_rates(pair);
+
+create table if not exists public.crypto_prices (
+  id uuid primary key default gen_random_uuid(),
+  symbol text not null unique, -- e.g. BTC, ETH
+  price numeric(30,12) not null,
+  market_cap numeric(40,2),
+  ts timestamptz default now() not null
+);
+
+alter table public.crypto_prices enable row level security;
+drop policy if exists "Allow public select crypto_prices" on public.crypto_prices;
+create policy "Allow public select crypto_prices" on public.crypto_prices for select using (true);
+
+create index if not exists crypto_prices_symbol_idx on public.crypto_prices(symbol);
+
+-- ============================================================
 -- DEPOSITS TABLE
 -- Tracks all deposit transactions via SlipOk
 -- ============================================================
@@ -263,6 +296,16 @@ create trigger on_auth_user_created_profile
 -- ADMIN LOGS TABLE
 -- Track admin actions for auditing
 -- ============================================================
+-- Create function to check if user is admin (needed by RLS policies)
+create or replace function public.is_db_admin(user_uuid uuid)
+returns boolean as $$
+begin
+  return exists (
+    select 1 from public.admin_users where user_id = user_uuid
+  );
+end;
+$$ language plpgsql security definer;
+
 create table if not exists public.admin_logs (
   id          uuid default uuid_generate_v4() primary key,
   admin_id    uuid references auth.users(id) on delete cascade not null,
@@ -288,23 +331,13 @@ create index admin_logs_created_at_idx on public.admin_logs(created_at);
 drop policy if exists "Admins can view admin logs" on public.admin_logs;
 create policy "Admins can view admin logs" on public.admin_logs 
   for select using (
-    auth.uid() in (
-      select id from auth.users where email in (
-        'admin@skytrading.com',
-        'komon502@gmail.com'
-      )
-    )
+    public.is_db_admin(auth.uid())
   );
 
 drop policy if exists "Admins can insert admin logs" on public.admin_logs;
 create policy "Admins can insert admin logs" on public.admin_logs 
   for insert with check (
-    auth.uid() in (
-      select id from auth.users where email in (
-        'admin@skytrading.com',
-        'komon502@gmail.com'
-      )
-    )
+    public.is_db_admin(auth.uid())
   );
 
 -- ============================================================
@@ -331,15 +364,14 @@ alter table public.admin_users enable row level security;
 -- Only admins can view admin_users
 create policy "Admins can view admin users" on public.admin_users
   for select using (
-    auth.uid() in (select user_id from public.admin_users)
-    or auth.uid() in (select id from auth.users where email in ('admin@skytrading.com', 'komon502@gmail.com'))
+    public.is_db_admin(auth.uid())
   );
 
 -- Only super_admins can insert/update/delete
 create policy "Super admins can manage admin users" on public.admin_users
   for all using (
-    auth.uid() in (select user_id from public.admin_users where role = 'super_admin')
-    or auth.uid() in (select id from auth.users where email in ('admin@skytrading.com', 'komon502@gmail.com'))
+    exists (select 1 from public.admin_users au where au.user_id = auth.uid() and au.role = 'super_admin')
+    or public.is_db_admin(auth.uid())
   );
 
 -- Insert default super admin (adjust email as needed)
@@ -350,14 +382,7 @@ where email = 'admin@skytrading.com'
 on conflict do nothing;
 
 -- Create function to check if user is admin
-create or replace function public.is_db_admin(user_uuid uuid)
-returns boolean as $$
-begin
-  return exists (
-    select 1 from public.admin_users where user_id = user_uuid
-  );
-end;
-$$ language plpgsql security definer;
+-- (function defined earlier before admin logs)
 
 -- ============================================================
 -- Done!
