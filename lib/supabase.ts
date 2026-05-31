@@ -1,7 +1,15 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+// Prefer explicit environment variables, but fall back to the project's
+// example values so server-side rendering doesn't crash if envs are missing.
+// NOTE: If you are deploying, set the real values in Vercel/hosting env vars.
+const supabaseUrl =
+  process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL ||
+  'https://mbquqkstbjtusmamascm.supabase.co'
+
+const supabaseAnonKey =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1icXVxa3N0Ymp0dXNtYW1hc2NtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNDc1NzAsImV4cCI6MjA5NTcyMzU3MH0.t_8o3V-uPBvps28q4hcNfS-koSdu6b5ZUtO7e6phxyw'
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
