@@ -146,12 +146,12 @@ export default function AdminUsers() {
                     </td>
                     <td className="p-4 text-right">
                       <span className="text-yellow-400 font-mono">
-                        ฿{user.wallets?.demo_balance?.toLocaleString() || 0}
+                        ${user.wallets?.demo_balance?.toLocaleString('en-US') || 0}
                       </span>
                     </td>
                     <td className="p-4 text-right">
                       <span className="text-green-400 font-mono">
-                        ฿{user.wallets?.real_balance?.toLocaleString() || 0}
+                        ${user.wallets?.real_balance?.toLocaleString('en-US') || 0}
                       </span>
                     </td>
                     <td className="p-4 text-center">
@@ -220,11 +220,11 @@ export default function AdminUsers() {
             <div className="p-4 grid grid-cols-2 gap-4 border-b" style={{ borderColor: 'rgba(59,127,212,0.12)' }}>
               <div className="p-3 rounded-lg bg-yellow-500/10">
                 <p className="text-xs text-yellow-400 mb-1">Demo Balance</p>
-                <p className="text-xl font-bold text-white">฿{selectedUser.wallets?.demo_balance?.toLocaleString() || 0}</p>
+                <p className="text-xl font-bold text-white">${selectedUser.wallets?.demo_balance?.toLocaleString('en-US') || 0}</p>
               </div>
               <div className="p-3 rounded-lg bg-green-500/10">
                 <p className="text-xs text-green-400 mb-1">Real Balance</p>
-                <p className="text-xl font-bold text-white">฿{selectedUser.wallets?.real_balance?.toLocaleString() || 0}</p>
+                <p className="text-xl font-bold text-white">${selectedUser.wallets?.real_balance?.toLocaleString('en-US') || 0}</p>
               </div>
             </div>
 
@@ -269,7 +269,7 @@ export default function AdminUsers() {
                   {userDetails?.deposits?.map((deposit: any) => (
                     <div key={deposit.id} className="p-3 rounded-lg bg-white/5 flex justify-between items-center">
                       <div>
-                        <span className="text-white font-medium">฿{deposit.amount.toLocaleString()}</span>
+                        <span className="text-white font-medium">${deposit.amount.toLocaleString('en-US')}</span>
                         <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${
                           deposit.status === 'pending' ? 'bg-yellow-500/10 text-yellow-400' :
                           deposit.status === 'verified' ? 'bg-green-500/10 text-green-400' :

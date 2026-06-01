@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import dynamic from 'next/dynamic'
 import { supabase } from '../lib/supabase'
-import { US_STOCKS, CRYPTOS, FOREX_PAIRS, getStockQuote, getCryptoPrice, getForexPrice, getCustomForexPairs, formatPrice, formatTHB } from '../lib/market'
+import { US_STOCKS, CRYPTOS, FOREX_PAIRS, getStockQuote, getCryptoPrice, getForexPrice, getCustomForexPairs, formatPrice, formatUSD } from '../lib/market'
 import { isUSStockMarketOpen, formatCountdown } from '../lib/market-hours'
 import Navbar from '../components/Navbar'
 import {
@@ -194,11 +194,11 @@ export default function TradePage() {
     const qty = parseFloat(quantity)
     if (!qty || qty <= 0) { setOrderMsg({ type: 'error', text: 'ใส่จำนวนให้ถูกต้อง' }); return }
 
-    const totalTHB = qty * price  // Price now in THB directly
+    const totalUSD = qty * price
     const balance = mode === 'demo' ? wallet.demo_balance : wallet.real_balance
 
-    if (orderType === 'buy' && totalTHB > balance) {
-      setOrderMsg({ type: 'error', text: `ยอดเงินไม่เพียงพอ (ต้องการ ฿${totalTHB.toLocaleString('th-TH', {maximumFractionDigits: 2})}, มี ฿${balance.toLocaleString('th-TH', {maximumFractionDigits: 2})})` })
+    if (orderType === 'buy' && totalUSD > balance) {
+      setOrderMsg({ type: 'error', text: `ยอดเงินไม่เพียงพอ (ต้องการ $${totalUSD.toLocaleString('en-US', {maximumFractionDigits: 2})}, มี $${balance.toLocaleString('en-US', {maximumFractionDigits: 2})})` })
       return
     }
 
@@ -224,7 +224,7 @@ export default function TradePage() {
       type: orderType,
       quantity: qty,
       price,
-      total: totalTHB,
+      total: totalUSD,
       status: 'open',
     })
 
@@ -233,7 +233,7 @@ export default function TradePage() {
     } else {
       // Update wallet balance (in THB)
       const balKey = mode === 'demo' ? 'demo_balance' : 'real_balance'
-      const newBal = orderType === 'buy' ? balance - totalTHB : balance + totalTHB
+      const newBal = orderType === 'buy' ? balance - totalUSD : balance + totalUSD
       await supabase.from('wallets').update({ [balKey]: newBal }).eq('user_id', user.id)
 
       // If selling, close the oldest buy position(s)
@@ -262,7 +262,7 @@ export default function TradePage() {
 
       await loadWallet(user.id)
       await loadPositions(user.id)
-      setOrderMsg({ type: 'success', text: `${orderType === 'buy' ? 'ซื้อ' : 'ขาย'} ${qty} ${selectedSymbol} @ ฿${formatPrice(price)} สำเร็จ` })
+      setOrderMsg({ type: 'success', text: `${orderType === 'buy' ? 'ซื้อ' : 'ขาย'} ${qty} ${selectedSymbol} @ $${formatPrice(price)} สำเร็จ` })
       setQuantity('')
     }
     setOrderLoading(false)
@@ -290,13 +290,13 @@ export default function TradePage() {
       {mode === 'real' && (
         <div className="px-4 py-2 text-xs font-semibold text-center"
           style={{ background: 'rgba(0,208,132,0.08)', borderBottom: '1px solid rgba(0,208,132,0.15)', color: '#00d084' }}>
-          REAL MODE · ใช้เงินจริง · ยอด Real: ฿{wallet ? formatTHB(wallet.real_balance) : '0.00'}
+          REAL MODE · ใช้เงินจริง · ยอด Real: ${wallet ? formatUSD(wallet.real_balance) : '0.00'}
         </div>
       )}
       {mode === 'demo' && (
         <div className="px-4 py-2 text-xs font-semibold text-center"
           style={{ background: 'rgba(250,199,117,0.06)', borderBottom: '1px solid rgba(250,199,117,0.12)', color: '#fac775' }}>
-          DEMO MODE · เงินสมมติ · ยอด Demo: ฿{wallet ? formatTHB(wallet.demo_balance) : '5,000.00'}
+          DEMO MODE · เงินสมมติ · ยอด Demo: ${wallet ? formatUSD(wallet.demo_balance) : '5,000.00'}
         </div>
       )}
 
@@ -557,10 +557,10 @@ export default function TradePage() {
                   <div className="flex-1">
                     <label className="text-xs text-gray-400 mb-2 block">มูลค่ารวม (ประมาณ)</label>
                     <div className="input-sky text-center font-mono text-white font-semibold">
-                      {price && quantity ? `฿${formatTHB(parseFloat(quantity || '0') * price)}` : '-'}
+                      {price && quantity ? `$${formatUSD(parseFloat(quantity || '0') * price)}` : '-'}
                     </div>
                     <div className="text-xs text-gray-500 mt-2 text-center">
-                      คงเหลือ: ฿{formatTHB(mode === 'demo' ? wallet?.demo_balance || 0 : wallet?.real_balance || 0)}
+                      คงเหลือ: ${formatUSD(mode === 'demo' ? wallet?.demo_balance || 0 : wallet?.real_balance || 0)}
                     </div>
                   </div>
                 </div>

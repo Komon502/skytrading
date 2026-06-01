@@ -115,7 +115,7 @@ export default function AdminDeposits() {
         <StatCard label="รอตรวจสอบ" value={stats.pending} color="yellow" alert={stats.pending > 0} />
         <StatCard label="ยืนยันแล้ว" value={stats.verified} color="green" />
         <StatCard label="ถูกปฏิเสธ" value={stats.rejected} color="red" />
-        <StatCard label="ยอดรวมที่ยืนยัน" value={`฿${stats.totalAmount.toLocaleString()}`} color="purple" />
+        <StatCard label="ยอดรวมที่ยืนยัน" value={`$${stats.totalAmount.toLocaleString('en-US')}`} color="purple" />
       </div>
 
       {/* Filter Tabs */}
@@ -176,7 +176,7 @@ export default function AdminDeposits() {
                     <code className="text-xs text-gray-400">{deposit.user_id.slice(0, 8)}...</code>
                   </td>
                   <td className="p-4 text-right">
-                    <span className="text-lg font-bold text-white">฿{deposit.amount.toLocaleString()}</span>
+                    <span className="text-lg font-bold text-white">${deposit.amount.toLocaleString('en-US')}</span>
                   </td>
                   <td className="p-4 text-center">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${
@@ -244,7 +244,7 @@ export default function AdminDeposits() {
             <div className="p-4 border-b flex justify-between items-center" style={{ borderColor: 'rgba(59,127,212,0.12)' }}>
               <div>
                 <h3 className="font-bold text-white">สลิปการโอนเงิน</h3>
-                <p className="text-sm text-gray-500">฿{selectedDeposit.amount.toLocaleString()} - {selectedDeposit.user_profiles?.display_name}</p>
+                <p className="text-sm text-gray-500">${selectedDeposit.amount.toLocaleString('en-US')} - {selectedDeposit.user_profiles?.display_name}</p>
               </div>
               <div className="flex gap-2">
                 <a

@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
 import Navbar from '../components/Navbar'
 import { User, BarChart2, Shield, Wallet, TrendingUp, TrendingDown, Loader2, Eye, EyeOff, Camera, Edit2, Check, X } from 'lucide-react'
-import { formatTHB } from '../lib/market'
+import { formatUSD } from '../lib/market'
 
 type ProfileTab = 'overview' | 'history' | 'security' | 'profile'
 
@@ -202,12 +202,12 @@ export default function ProfilePage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="glass p-5">
                 <p className="text-xs text-yellow-400 font-semibold mb-1">💛 DEMO BALANCE</p>
-                <p className="text-2xl font-mono font-bold text-white">฿{formatTHB(wallet.demo_balance)}</p>
+                <p className="text-2xl font-mono font-bold text-white">${formatUSD(wallet.demo_balance)}</p>
                 <p className="text-xs text-gray-600 mt-1">เริ่มต้น ฿5,000.00</p>
               </div>
               <div className="glass p-5">
                 <p className="text-xs text-green-400 font-semibold mb-1">💚 REAL BALANCE</p>
-                <p className="text-2xl font-mono font-bold text-white">฿{formatTHB(wallet.real_balance)}</p>
+                <p className="text-2xl font-mono font-bold text-white">${formatUSD(wallet.real_balance)}</p>
                 <p className="text-xs text-gray-600 mt-1">เงินจริง</p>
               </div>
             </div>
@@ -215,7 +215,7 @@ export default function ProfilePage() {
             <div className="grid grid-cols-3 gap-4">
               {[
                 { label: 'คำสั่งทั้งหมด', value: totalTrades, color: 'text-blue-400' },
-                { label: 'P&L รวม', value: `${totalPnl >= 0 ? '+' : ''}฿${formatTHB(totalPnl)}`, color: totalPnl >= 0 ? 'text-green-400' : 'text-red-400' },
+                { label: 'P&L รวม', value: `${totalPnl >= 0 ? '+' : ''}$${formatUSD(totalPnl)}`, color: totalPnl >= 0 ? 'text-green-400' : 'text-red-400' },
                 { label: 'Trades ปิดแล้ว', value: closedTrades.length, color: 'text-gray-300' },
               ].map((s, i) => (
                 <div key={i} className="glass p-4 text-center">

@@ -259,7 +259,7 @@ export default function CustomForexPage() {
                     <div className="text-right">
                       <div className="flex items-center gap-2 justify-end">
                         <span className="text-3xl font-mono font-bold text-white">
-                          {price ? `฿${formatPrice(price, 4)}` : '-'}
+                          {price ? `$${formatPrice(price, 4)}` : '-'}
                         </span>
                         {priceLoading && <Loader2 size={20} className="animate-spin text-blue-400" />}
                       </div>
@@ -356,8 +356,8 @@ export default function CustomForexPage() {
                     />
                     {price && quantity && (
                       <p className="text-sm text-gray-500 mt-2 text-center">
-                        มูลค่ารวม: ฿{formatPrice(parseFloat(quantity) * price, 2)}
-                      </p>
+                          มูลค่ารวม: ${formatPrice(parseFloat(quantity) * price, 2)}
+                        </p>
                     )}
                   </div>
 
@@ -412,7 +412,7 @@ export default function CustomForexPage() {
                                 <span className="text-white font-medium">{trade.quantity} หน่วย</span>
                               </div>
                               <p className="text-sm text-gray-400">
-                                ราคาเข้า: ฿{formatPrice(trade.entry_price, 4)}
+                                ราคาเข้า: ${formatPrice(trade.entry_price, 4)}
                               </p>
                               <p className="text-xs text-gray-500">
                                 {new Date(trade.created_at).toLocaleString('th-TH')}
@@ -467,7 +467,7 @@ export default function CustomForexPage() {
                             (trade.profit_loss || 0) >= 0 ? 'text-green-400' : 'text-red-400'
                           }`}>
                             {trade.status === 'open' ? 'เปิดอยู่' :
-                             trade.profit_loss ? `${(trade.profit_loss >= 0 ? '+' : '')}฿${formatPrice(trade.profit_loss, 2)}` : ''
+                             trade.profit_loss ? `${(trade.profit_loss >= 0 ? '+' : '')}$${formatPrice(trade.profit_loss, 2)}` : ''
                             }
                           </span>
                         </div>

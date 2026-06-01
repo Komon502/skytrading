@@ -196,21 +196,20 @@ interface SyntheticPriceState {
 // Store synthetic price states in memory
 const syntheticPriceStates: Map<string, SyntheticPriceState> = new Map()
 
-// Base prices for synthetic forex (in THB - converted from USD at rate 36)
-const THB_RATE = 36
+// Base prices for synthetic forex (in USD or quote currency units)
 const SYNTHETIC_BASE_PRICES: Record<string, number> = {
-  'EURUSD': 1.0850 * THB_RATE,   // ~39.06 THB
-  'GBPUSD': 1.2650 * THB_RATE,   // ~45.54 THB
-  'USDJPY': 151.50 * THB_RATE,  // ~5454 THB (USDJPY is different - actually this is JPY per USD)
-  'USDCHF': 0.9050 * THB_RATE,   // ~32.58 THB
-  'AUDUSD': 0.6550 * THB_RATE,   // ~23.58 THB
-  'USDCAD': 1.3850 * THB_RATE,   // ~49.86 THB
-  'NZDUSD': 0.5950 * THB_RATE,   // ~21.42 THB
-  'EURGBP': 0.8580 * THB_RATE,   // ~30.89 THB
-  'EURJPY': 164.20 * THB_RATE,   // ~5911 THB
-  'GBPJPY': 191.50 * THB_RATE,   // ~6894 THB
-  'XAUUSD': 2320.50 * THB_RATE,  // ~83538 THB (Gold)
-  'XAGUSD': 27.80 * THB_RATE,    // ~1000.8 THB (Silver)
+  'EURUSD': 1.0850,
+  'GBPUSD': 1.2650,
+  'USDJPY': 151.50,
+  'USDCHF': 0.9050,
+  'AUDUSD': 0.6550,
+  'USDCAD': 1.3850,
+  'NZDUSD': 0.5950,
+  'EURGBP': 0.8580,
+  'EURJPY': 164.20,
+  'GBPJPY': 191.50,
+  'XAUUSD': 2320.50,
+  'XAGUSD': 27.80,
 }
 
 // Volatility settings per pair (daily volatility %)
@@ -349,8 +348,8 @@ export function formatPrice(price: number, decimals = 2) {
   })
 }
 
-export function formatTHB(amount: number) {
-  return amount.toLocaleString('th-TH', {
+export function formatUSD(amount: number) {
+  return amount.toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })

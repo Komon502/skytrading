@@ -139,7 +139,7 @@ export default function Navbar({ user, wallet, mode, onModeChange }: NavbarProps
                 <Wallet size={12} className="text-blue-400" />
                 <span className="text-gray-400">{mode === 'demo' ? 'Demo:' : 'Real:'}</span>
                 <span className="font-mono font-semibold text-white">
-                  ฿{(mode === 'demo' ? wallet.demo_balance : wallet.real_balance).toLocaleString('th-TH', { maximumFractionDigits: 2 })}
+                  ${(mode === 'demo' ? wallet.demo_balance : wallet.real_balance).toLocaleString('en-US', { maximumFractionDigits: 2 })}
                 </span>
               </div>
             )}
@@ -176,11 +176,11 @@ export default function Navbar({ user, wallet, mode, onModeChange }: NavbarProps
                       <div className="px-4 py-2 border-b" style={{ borderColor: 'rgba(59,127,212,0.1)' }}>
                         <div className="flex justify-between text-xs mb-1">
                           <span className="text-yellow-400 font-semibold">DEMO</span>
-                          <span className="text-gray-300 font-mono">฿{wallet.demo_balance.toLocaleString('th-TH', {maximumFractionDigits: 2})}</span>
+                          <span className="text-gray-300 font-mono">${wallet.demo_balance.toLocaleString('en-US', {maximumFractionDigits: 2})}</span>
                         </div>
                         <div className="flex justify-between text-xs">
                           <span className="text-green-400 font-semibold">REAL</span>
-                          <span className="text-gray-300 font-mono">฿{wallet.real_balance.toLocaleString('th-TH', {maximumFractionDigits: 2})}</span>
+                          <span className="text-gray-300 font-mono">${wallet.real_balance.toLocaleString('en-US', {maximumFractionDigits: 2})}</span>
                         </div>
                       </div>
                     )}

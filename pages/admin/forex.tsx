@@ -270,13 +270,13 @@ export default function AdminForexPage() {
                       <div>
                         <p className="text-gray-500 text-xs">Current Price</p>
                         <p className="text-white font-mono font-medium">
-                          ฿{forex.current_price.toFixed(4)}
+                          ${forex.current_price.toFixed(4)}
                         </p>
                       </div>
                       <div>
                         <p className="text-gray-500 text-xs">Base Price</p>
                         <p className="text-gray-400 font-mono">
-                          ฿{forex.base_price.toFixed(4)}
+                          ${forex.base_price.toFixed(4)}
                         </p>
                       </div>
                       <div>

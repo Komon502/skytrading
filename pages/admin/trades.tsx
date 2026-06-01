@@ -241,11 +241,11 @@ export default function AdminTrades() {
                   <td className="p-4 text-right">
                     <span className="text-white font-mono">{trade.quantity} {isForex ? 'lot' : ''}</span>
                   </td>
-                  <td className="p-4 text-right">
-                    <span className="text-gray-400 font-mono">฿{trade.price}</span>
+                    <td className="p-4 text-right">
+                    <span className="text-gray-400 font-mono">${trade.price}</span>
                   </td>
                   <td className="p-4 text-right">
-                    <span className="text-white font-mono font-medium">฿{trade.total?.toLocaleString()}</span>
+                    <span className="text-white font-mono font-medium">${trade.total?.toLocaleString('en-US')}</span>
                   </td>
                   <td className="p-4 text-center">
                     <span className={`px-2 py-1 rounded-full text-xs ${

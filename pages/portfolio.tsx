@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
-import { formatPrice, formatTHB, getAssetType, getAssetDisplayName, US_STOCKS, CRYPTOS, FOREX_PAIRS } from '../lib/market'
+import { formatPrice, formatUSD, getAssetType, getAssetDisplayName, US_STOCKS, CRYPTOS, FOREX_PAIRS } from '../lib/market'
 import Navbar from '../components/Navbar'
 import {
   PieChart, TrendingUp, TrendingDown, Wallet, Package,
@@ -219,7 +219,7 @@ export default function PortfolioPage() {
               </div>
               <span className="text-sm text-gray-400">มูลค่าพอร์ต</span>
             </div>
-            <p className="text-2xl font-bold text-white">฿{formatPrice(totalValue)}</p>
+            <p className="text-2xl font-bold text-white">${formatPrice(totalValue)}</p>
             <p className="text-sm text-gray-500">มูลค่าพอร์ตรวม</p>
           </div>
 
@@ -231,7 +231,7 @@ export default function PortfolioPage() {
               </div>
               <span className="text-sm text-gray-400">ต้นทุนรวม</span>
             </div>
-            <p className="text-2xl font-bold text-white">฿{formatPrice(totalCost)}</p>
+            <p className="text-2xl font-bold text-white">${formatPrice(totalCost)}</p>
             <p className="text-sm text-gray-500">ทุนเฉลี่ยทั้งหมด</p>
           </div>
 
@@ -246,7 +246,7 @@ export default function PortfolioPage() {
               <span className="text-sm text-gray-400">กำไร/ขาดทุน</span>
             </div>
             <p className={`text-2xl font-bold ${totalPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {totalPnl >= 0 ? '+' : ''}฿{formatPrice(totalPnl)}
+              {totalPnl >= 0 ? '+' : ''}${formatPrice(totalPnl)}
             </p>
             <p className={`text-sm ${totalPnlPercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
               {totalPnlPercent >= 0 ? '+' : ''}{totalPnlPercent.toFixed(2)}%
@@ -273,7 +273,7 @@ export default function PortfolioPage() {
               <BarChart2 size={16} className="text-blue-400"/>
               <span className="text-sm text-gray-400">หุ้น (Stocks)</span>
             </div>
-            <p className="text-xl font-bold text-white">฿{formatPrice(assetTotals.stock.value)}</p>
+            <p className="text-xl font-bold text-white">${formatPrice(assetTotals.stock.value)}</p>
             <p className="text-xs text-gray-500">{holdings.filter(h => h.type === 'stock').length} รายการ</p>
           </div>
           <div className="glass p-4 rounded-xl border border-orange-500/20">
@@ -281,7 +281,7 @@ export default function PortfolioPage() {
               <Bitcoin size={16} className="text-orange-400"/>
               <span className="text-sm text-gray-400">คริปโต (Crypto)</span>
             </div>
-            <p className="text-xl font-bold text-white">฿{formatPrice(assetTotals.crypto.value)}</p>
+            <p className="text-xl font-bold text-white">${formatPrice(assetTotals.crypto.value)}</p>
             <p className="text-xs text-gray-500">{holdings.filter(h => h.type === 'crypto').length} รายการ</p>
           </div>
           <div className="glass p-4 rounded-xl border border-green-500/20">
@@ -289,7 +289,7 @@ export default function PortfolioPage() {
               <Globe size={16} className="text-green-400"/>
               <span className="text-sm text-gray-400">ฟอเร็กซ์ (Forex)</span>
             </div>
-            <p className="text-xl font-bold text-white">฿{formatPrice(assetTotals.forex.value)}</p>
+            <p className="text-xl font-bold text-white">${formatPrice(assetTotals.forex.value)}</p>
             <p className="text-xs text-gray-500">{holdings.filter(h => h.type === 'forex').length} รายการ</p>
           </div>
         </div>
@@ -395,14 +395,14 @@ export default function PortfolioPage() {
                         <p className="text-xs text-gray-500">{h.type === 'forex' ? 'lot' : 'หน่วย'}</p>
                       </td>
                       <td className="p-4 text-right">
-                        <p className="text-white">฿{formatPrice(h.avgPrice)}</p>
+                        <p className="text-white">${formatPrice(h.avgPrice)}</p>
                       </td>
                       <td className="p-4 text-right">
-                        <p className="text-white">฿{formatPrice(h.currentPrice || h.avgPrice)}</p>
+                        <p className="text-white">${formatPrice(h.currentPrice || h.avgPrice)}</p>
                       </td>
                       <td className="p-4 text-right">
-                        <p className="font-medium text-white">฿{formatPrice(h.currentValue || h.totalCost)}</p>
-                        <p className="text-xs text-gray-500">ทุน ฿{formatPrice(h.totalCost)}</p>
+                        <p className="font-medium text-white">${formatPrice(h.currentValue || h.totalCost)}</p>
+                        <p className="text-xs text-gray-500">ทุน ${formatPrice(h.totalCost)}</p>
                       </td>
                       <td className="p-4 text-right">
                         <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-sm font-medium ${

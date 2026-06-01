@@ -285,7 +285,7 @@ export default function CustomForexChart({ symbol, height = 280, isMarketOpen = 
         {currentPrice && priceChange && (
           <div className="flex items-center gap-2">
             <span className="text-white font-mono font-bold text-sm">
-              ฿{currentPrice.toFixed(4)}
+              ${currentPrice.toFixed(4)}
             </span>
             <span className={`px-2 py-0.5 ${changeBg} ${changeColor} text-[10px] font-medium rounded`}>
               {isPositive ? '+' : ''}{priceChange.percent.toFixed(2)}%

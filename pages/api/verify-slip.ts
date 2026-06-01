@@ -53,7 +53,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const slipData = await slipokRes.json()
 
-    // Verify amount matches (allow ±1 baht tolerance)
+    // Verify amount matches (allow ±1 USD tolerance)
     const slipAmount = slipData?.data?.amount || 0
     const amountMatch = Math.abs(slipAmount - amount) <= 1
 
@@ -65,7 +65,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
       return res.json({
         success: false,
-        message: `ยอดเงินใน slip (฿${slipAmount}) ไม่ตรงกับที่กรอก (฿${amount})`
+        message: `ยอดเงินใน slip ($${slipAmount}) ไม่ตรงกับที่กรอก ($${amount})`
       })
     }
 
