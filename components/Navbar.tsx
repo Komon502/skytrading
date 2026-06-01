@@ -7,7 +7,7 @@ import {
   BarChart2, User, Wallet, LogOut, Settings,
   ChevronDown, Menu, X, TrendingUp, Home,
   CreditCard, Shield, PieChart, LayoutDashboard,
-  Globe, DollarSign, Bitcoin
+  
 } from 'lucide-react'
 
 interface NavbarProps {
@@ -71,16 +71,7 @@ export default function Navbar({ user, wallet, mode, onModeChange }: NavbarProps
               }`}>
                 <span className="flex items-center gap-1.5"><BarChart2 size={14}/> เทรดหุ้น</span>
               </Link>
-              <Link href="/forex" className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                router.pathname === '/forex' ? 'text-white bg-purple-500/20 border border-purple-500/30' : 'text-purple-400 hover:text-purple-300'
-              }`}>
-                <span className="flex items-center gap-1.5"><Globe size={14}/> Forex Synthetic</span>
-              </Link>
-              <Link href="/crypto" className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                router.pathname === '/crypto' ? 'text-white bg-white/5' : 'text-gray-400 hover:text-white'
-              }`}>
-                <span className="flex items-center gap-1.5"><Bitcoin size={14}/> Crypto</span>
-              </Link>
+              {/* Forex and Crypto links removed per request */}
               <Link href="/portfolio" className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                 router.pathname === '/portfolio' ? 'text-white bg-white/5' : 'text-gray-400 hover:text-white'
               }`}>
@@ -243,8 +234,6 @@ export default function Navbar({ user, wallet, mode, onModeChange }: NavbarProps
               )}
               <Link href="/" className="flex items-center gap-2 py-2.5 text-gray-300" onClick={() => setMobileOpen(false)}><Home size={16}/>หน้าหลัก</Link>
               <Link href="/trade" className="flex items-center gap-2 py-2.5 text-gray-300" onClick={() => setMobileOpen(false)}><BarChart2 size={16}/>เทรดหุ้น</Link>
-              <Link href="/forex" className="flex items-center gap-2 py-2.5 text-gray-300" onClick={() => setMobileOpen(false)}><Globe size={16}/>Forex</Link>
-              <Link href="/crypto" className="flex items-center gap-2 py-2.5 text-gray-300" onClick={() => setMobileOpen(false)}><Bitcoin size={16}/>Crypto</Link>
               <Link href="/portfolio" className="flex items-center gap-2 py-2.5 text-gray-300" onClick={() => setMobileOpen(false)}><PieChart size={16}/>พอร์ต</Link>
               <Link href="/deposit" className="flex items-center gap-2 py-2.5 text-gray-300" onClick={() => setMobileOpen(false)}><CreditCard size={16}/>ฝากเงิน</Link>
               <Link href="/profile" className="flex items-center gap-2 py-2.5 text-gray-300" onClick={() => setMobileOpen(false)}><User size={16}/>โปรไฟล์</Link>
