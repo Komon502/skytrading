@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic'
 import { supabase } from '../lib/supabase'
 import { CRYPTOS, getCryptoPrice, formatPrice, formatUSD } from '../lib/market'
 import { isCryptoMarketOpen, formatCountdown } from '../lib/market-hours'
-import Navbar from '../components/Navbar'
+// Navbar removed per request
 import {
   TrendingUp, TrendingDown, Search, Bitcoin, Clock,
   ArrowUpCircle, ArrowDownCircle, Wallet, Loader2
@@ -173,7 +173,7 @@ export default function CryptoPage() {
 
   return (
     <div className="min-h-screen" style={{ background: '#060d1a' }}>
-      <Navbar user={user} wallet={wallet} mode={mode} onModeChange={setMode}/>
+      {/* Navbar removed */}
 
       {/* Mode warning banner */}
       {mode === 'real' && (

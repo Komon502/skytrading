@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic'
 import { supabase } from '../lib/supabase'
 import { FOREX_PAIRS, getSyntheticForexPrice, subscribeSyntheticForex, formatPrice, formatUSD } from '../lib/market'
 import { getSyntheticForexMarketStatus, formatCountdown } from '../lib/market-hours'
-import Navbar from '../components/Navbar'
+// Navbar removed per request
 import {
   TrendingUp, TrendingDown, Search, Globe, Clock,
   DollarSign, ArrowUpCircle, ArrowDownCircle,
@@ -184,7 +184,7 @@ export default function ForexPage() {
 
   return (
     <div className="min-h-screen" style={{ background: '#060d1a' }}>
-      <Navbar user={user} wallet={wallet} mode={mode} onModeChange={setMode}/>
+      {/* Navbar removed */}
 
       {/* Mode warning banner */}
       {mode === 'real' && (
