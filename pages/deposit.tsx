@@ -101,7 +101,7 @@ export default function DepositPage() {
 
     if (result.success) {
       setStatus('success')
-      setMessage(`ยืนยันสำเร็จ! เติมเงิน ฿${amt.toLocaleString()} เข้า Real Balance แล้ว`)
+      setMessage(`ยืนยันสำเร็จ! เติมเงิน $${amt.toLocaleString('en-US')} เข้า Real Balance แล้ว`)
       await loadWallet(user.id)
       await loadHistory(user.id)
       setSlipFile(null)
@@ -231,7 +231,7 @@ export default function DepositPage() {
                 <div key={dep.id} className="flex items-center justify-between text-xs py-2 border-b"
                   style={{ borderColor: 'rgba(59,127,212,0.08)' }}>
                   <div>
-                    <span className="text-white font-mono">฿{dep.amount?.toLocaleString('th-TH')}</span>
+                    <span className="text-white font-mono">${dep.amount?.toLocaleString('en-US')}</span>
                     <span className="text-gray-600 ml-2">{new Date(dep.created_at).toLocaleDateString('th-TH')}</span>
                   </div>
                   <span className={`px-2 py-0.5 rounded-full font-semibold ${

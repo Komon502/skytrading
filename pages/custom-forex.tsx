@@ -472,8 +472,8 @@ export default function CustomForexPage() {
                           </span>
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
-                          เข้า: ฿{formatPrice(trade.entry_price, 4)}
-                          {trade.exit_price && ` → ออก: ฿${formatPrice(trade.exit_price, 4)}`}
+                          เข้า: ${formatPrice(trade.entry_price, 4)}
+                          {trade.exit_price && ` → ออก: $${formatPrice(trade.exit_price, 4)}`}
                           <span className="ml-2">
                             {new Date(trade.created_at).toLocaleString('th-TH')}
                           </span>

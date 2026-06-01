@@ -185,8 +185,8 @@ export default function AdminDashboard() {
                     <p className="text-xs text-gray-500">ID: {user.id.slice(0, 8)}...</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-yellow-400">Demo: ฿{user.wallets?.demo_balance?.toLocaleString() || 0}</p>
-                    <p className="text-xs text-green-400">Real: ฿{user.wallets?.real_balance?.toLocaleString() || 0}</p>
+                    <p className="text-xs text-yellow-400">Demo: ${user.wallets?.demo_balance?.toLocaleString('en-US') || 0}</p>
+                    <p className="text-xs text-green-400">Real: ${user.wallets?.real_balance?.toLocaleString('en-US') || 0}</p>
                   </div>
                 </div>
               ))
@@ -211,8 +211,8 @@ export default function AdminDashboard() {
             ) : (
               recentDeposits.map((deposit: any) => (
                 <div key={deposit.id} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
-                  <div>
-                    <p className="font-medium text-white">฿{deposit.amount.toLocaleString()}</p>
+                    <div>
+                    <p className="font-medium text-white">${deposit.amount.toLocaleString('en-US')}</p>
                     <p className="text-xs text-gray-500">{deposit.user_profiles?.display_name || 'ไม่มีชื่อ'}</p>
                   </div>
                   <span className={`px-2 py-1 rounded-full text-xs ${
@@ -301,7 +301,7 @@ export default function AdminDashboard() {
                     </div>
                     <div className="text-right">
                       <p className="text-xs text-white">{parseFloat(trade.quantity).toFixed(4)} {isForex ? 'lot' : 'หน่วย'}</p>
-                      <p className="text-xs text-gray-500">฿{trade.price} · {trade.mode === 'demo' ? 'Demo' : 'Real'}</p>
+                      <p className="text-xs text-gray-500">${trade.price} · {trade.mode === 'demo' ? 'Demo' : 'Real'}</p>
                     </div>
                   </div>
                 )

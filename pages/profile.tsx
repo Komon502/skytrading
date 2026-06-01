@@ -203,7 +203,7 @@ export default function ProfilePage() {
               <div className="glass p-5">
                 <p className="text-xs text-yellow-400 font-semibold mb-1">💛 DEMO BALANCE</p>
                 <p className="text-2xl font-mono font-bold text-white">${formatUSD(wallet.demo_balance)}</p>
-                <p className="text-xs text-gray-600 mt-1">เริ่มต้น ฿5,000.00</p>
+                <p className="text-xs text-gray-600 mt-1">เริ่มต้น $5,000.00</p>
               </div>
               <div className="glass p-5">
                 <p className="text-xs text-green-400 font-semibold mb-1">💚 REAL BALANCE</p>

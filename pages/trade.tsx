@@ -410,7 +410,7 @@ export default function TradePage() {
               {price !== null && (
                 <div className="flex items-center gap-2">
                   <span className="text-xl md:text-2xl font-mono font-bold text-white">
-                    ฿{formatPrice(price, 2)}
+                    ${formatPrice(price, 2)}
                   </span>
                   {change !== 0 && (
                     <span className={change >= 0 ? 'text-green-400 text-sm' : 'text-red-400 text-sm'}>
@@ -520,7 +520,7 @@ export default function TradePage() {
                             disabled={!price}
                             className="py-2 md:py-1.5 rounded text-xs font-medium transition-all bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 disabled:opacity-50 active:scale-95"
                           >
-                            ฿{(parseInt(amount)/1000).toFixed(0)}K
+                            ${ (parseInt(amount)/1000).toFixed(0) }K
                           </button>
                         ))}
                       </div>
@@ -548,7 +548,7 @@ export default function TradePage() {
                   <div className="flex-1">
                     <label className="text-xs text-gray-400 mb-2 block">ราคาปัจจุบัน</label>
                     <div className="input-sky text-center font-mono text-gray-300">
-                      {price ? `฿${formatPrice(price)}` : '-'}
+                      {price ? `$${formatPrice(price)}` : '-'}
                     </div>
                     <div className="text-xs text-gray-500 mt-2 text-center">
                       ราคาอัพเดทเรียลไทม์
@@ -574,7 +574,7 @@ export default function TradePage() {
                     </div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="text-gray-400">ราคาซื้อเฉลี่ย:</span>
-                      <span className="text-white">฿{formatPrice(avgBuyPrice)}</span>
+                      <span className="text-white">${formatPrice(avgBuyPrice)}</span>
                     </div>
                     {quantity && parseFloat(quantity) > 0 && price && (
                       <>
@@ -585,7 +585,7 @@ export default function TradePage() {
                         <div className="flex justify-between text-xs">
                           <span className="text-gray-400">กำไร/ขาดทุน:</span>
                           <span className={((price - avgBuyPrice) * parseFloat(quantity)) >= 0 ? 'text-green-400' : 'text-red-400'}>
-                            {((price - avgBuyPrice) * parseFloat(quantity)) >= 0 ? '+' : ''}฿{formatPrice((price - avgBuyPrice) * parseFloat(quantity))}
+                            {((price - avgBuyPrice) * parseFloat(quantity)) >= 0 ? '+' : ''}${formatPrice((price - avgBuyPrice) * parseFloat(quantity))}
                           </span>
                         </div>
                       </>
@@ -601,11 +601,11 @@ export default function TradePage() {
                     </div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="text-gray-400">ราคาต่อหน่วย:</span>
-                      <span className="text-white">฿{formatPrice(price)}</span>
+                      <span className="text-white">${formatPrice(price)}</span>
                     </div>
                     <div className="flex justify-between text-xs pt-1 border-t border-white/5">
                       <span className="text-gray-400">ยอดรวม:</span>
-                      <span className="text-blue-400 font-medium">฿{formatPrice(parseFloat(quantity) * price)}</span>
+                      <span className="text-blue-400 font-medium">${formatPrice(parseFloat(quantity) * price)}</span>
                     </div>
                   </div>
                 )}
@@ -667,7 +667,7 @@ export default function TradePage() {
                     </div>
                     <div className="flex justify-between text-gray-400">
                       <span>ราคาเฉลี่ย</span>
-                      <span>฿{formatPrice(h.avgPrice)}</span>
+                      <span>${formatPrice(h.avgPrice)}</span>
                     </div>
                     <div className="flex justify-between text-gray-400 mt-1">
                       <span>มูลค่า</span>
